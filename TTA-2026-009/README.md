@@ -16,9 +16,10 @@ The behavior was verified end to end: a synthetic account accepted the new passw
 - Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
 - Public ownership evidence: UWCSEA describes CIMS as its College Information Management System and student management system.
 - Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Visible identity integration: SecureAuth script loaded by the public login page
 - Vendor, source repository, version, and build: not publicly identified
 
-The public link identifies the affected application. It does not establish whether the implementation was written entirely by UWCSEA or delivered by a third-party contractor.
+The public link identifies the affected application. The page and its asset layout indicate a UWCSEA-specific application or customized deployment, but do not establish whether the implementation was written entirely by UWCSEA or delivered by a third-party contractor.
 
 ## Security impact
 

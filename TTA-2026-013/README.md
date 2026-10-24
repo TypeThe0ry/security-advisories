@@ -13,6 +13,7 @@ CIMS MFA enforcement for the assessed administrator workflow depends on a single
 - Application: UWCSEA College Information Management System (CIMS)
 - Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
 - Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Visible identity integration: SecureAuth script loaded by the public login page
 - Vendor, source repository, version, and build: not publicly identified
 
 ## Security impact
