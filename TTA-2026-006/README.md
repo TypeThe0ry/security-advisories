@@ -1,9 +1,11 @@
-# CVE-2026-114245: Insurance-Management-System unauthenticated administrator account creation
+# TTA-2026-006: Insurance-Management-System unauthenticated administrator account creation (CVE-2026-114245)
 
 ## Status
 
-Published by the VulDB CNA on 2026-10-21 as CVE-2026-114245. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.
+TTA-2026-006 was published by the VulDB CNA on 2026-10-21 as CVE-2026-114245. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.
 
+- Local advisory: `TTA-2026-006`
+- CVE: `CVE-2026-114245`
 - CVE state: `PUBLISHED`
 - VulDB submission: `1018588`
 - VulDB entry: `VDB-424679`
@@ -87,7 +89,7 @@ The CNA's CVSS 3.1 score is used as the primary severity value here. Consumers s
 
 - 2026-10-07: Public upstream issue opened with reproduction details.
 - 2026-10-21: VulDB published VDB-424679 and CVE-2026-114245.
-- 2026-10-24: This repository advisory was published.
+- 2026-10-24: This repository advisory was published as TTA-2026-006.
 
 ## References
 

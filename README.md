@@ -1,36 +1,61 @@
-# Security Research
+# TypeThe0ry Security Research
 
-This repository hosts security advisories and supporting technical information for vulnerability research conducted by TypeThe0ry.
+This repository is the public disclosure channel for security vulnerabilities researched and reported by TypeThe0ry. It provides stable advisory identifiers, technical reports, remediation guidance, disclosure timelines, and links to assigned CVE records.
 
-## Responsible disclosure
+## Why
 
-Vendors are notified before publication. Reports are limited to the technical information needed to reproduce and remediate the issue, and use only synthetic laboratory evidence.
+Coordinating an open source vulnerability can require more time than the technical investigation itself: identifying the right contact, establishing a private communication channel, tracking remediation, coordinating publication, and following up on a CVE request.
 
-The Request Tracker vulnerabilities currently documented here were privately reported to Best Practical at `security@bestpractical.com` on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response, fix confirmation, or CVE assignment had been received at publication time.
+This repository provides a consistent process for that work. TypeThe0ry prepares an advisory under a permanent `TTA` identifier, contacts the maintainer, and invites the maintainer to participate in validation, remediation, and disclosure. If the maintainer prefers to coordinate through a GitHub Security Advisory in the affected project's own repository or through another established security channel, the discussion can move there while the `TTA` identifier remains the stable public reference.
 
-The Insurance-Management-System vulnerabilities were publicly reported to the upstream project on 2026-10-07. VulDB, acting as the CNA, published the corresponding CVE records on 2026-10-21. No upstream response or fix is known at the time of this update.
+The workflow is informed by [JLLeitschuh's security-research disclosure model](https://github.com/JLLeitschuh/security-research) and adapted to this repository's `TTA` identifier scheme and reporting history.
 
-Customer hostnames, IP addresses, credentials, session values, real user information, ticket contents, and production data are not published in this repository.
+## Advisory identifiers
 
-## Published CVEs
+`TTA` identifiers are the stable and canonical advisory identifiers used by this repository. Every report remains in its `TTA-YYYY-NNN` directory. An assigned CVE is recorded as an external cross-reference in the index and report; assigning a CVE does not rename or replace the `TTA` identifier.
 
-| CVE | Product | Vulnerability | CNA record |
-| --- | --- | --- | --- |
-| [CVE-2026-114243](CVE-2026-114243/) | dhikshitha29 Insurance-Management-System | Unauthenticated SQL injection in `EditPolicyHolder.php` | [VDB-424678](https://vuldb.com/vuln/424678) |
-| [CVE-2026-114245](CVE-2026-114245/) | dhikshitha29 Insurance-Management-System | Unauthenticated administrator account creation | [VDB-424679](https://vuldb.com/vuln/424679) |
+## Coordinated disclosure process
 
-## Pending CVE requests
+1. The vulnerability is validated using an isolated environment and synthetic data. A `TTA` identifier is assigned and a report is prepared for eventual public consumption.
+2. The maintainer is contacted through a published security address, [a private GitHub Security Advisory in this repository](https://github.com/TypeThe0ry/security-advisories/security/advisories), a vulnerability disclosure platform, or another appropriate private channel. The initial message contains enough information to route and triage the report; reproduction details are exchanged privately.
+3. TypeThe0ry and the maintainer coordinate validation, remediation, affected versions, publication timing, and appropriate user guidance. If the maintainer creates an advisory in the affected project's repository, that advisory becomes the preferred coordination channel.
+4. A CVE is requested through the maintainer's CNA or an appropriate third-party CNA when the issue is eligible. The `TTA` report is updated with the assigned CVE without changing its directory or canonical identifier.
+5. Public disclosure occurs when a fix or advisory is widely available, when the coordinated deadline is reached, or earlier when the policy below permits accelerated disclosure. The public report records the actual timeline and known fix status.
 
-| Advisory | Product | Vulnerability |
-| --- | --- | --- |
-| [TTA-2026-001](TTA-2026-001/) | Request Tracker 5.0.5 | REST 1.0 group membership authorization bypass |
-| [TTA-2026-002](TTA-2026-002/) | Request Tracker 5.0.5 | CustomFieldValue parent authorization bypass |
-| [TTA-2026-003](TTA-2026-003/) | Request Tracker 5.0.5 | SavedSearch cross-user disclosure |
-| [TTA-2026-004](TTA-2026-004/) | Request Tracker 5.0.5 | `RT::Attribute` authorization fail-open |
+## Disclosure policy
 
-`TTA` identifiers are stable local advisory identifiers, not CVE IDs. Published `TTA` directories are retained after a CVE is assigned, with both identifiers cross-referenced in the index and advisory. An advisory first published after CVE assignment may use a `CVE-YYYY-NNNN` directory.
+For new private notices sent on or after 2026-10-24, this repository follows the [OpenSSF Model Outbound Vulnerability Disclosure Policy, version 0.1.1](https://openssf.org/about/vulnerability-disclosure-policy/), unless an individual advisory documents a different agreement.
+
+- The normal maximum embargo is 90 calendar days from the date the maintainer receives private notice. Publication may occur sooner when a fix is made widely available.
+- Maintainers are asked to acknowledge the report within 21 calendar days and to provide a meaningful remediation update. If there is no engagement confirming an intent to remediate within 35 days, disclosure may be brought forward.
+- When a fix is firmly scheduled shortly after the 90-day deadline, publication may be delayed by up to 14 additional days to align with that release.
+- A previously unknown vulnerability observed under active exploitation is handled on an accelerated timeline, normally no more than 7 days from notice, unless a documented harm-reduction exception justifies more time.
+- A maintainer's statement that an issue will not be fixed or is not considered a vulnerability may end private coordination and lead to earlier publication.
+- Exceptional circumstances may justify moving a publication date. Material changes will be communicated to the maintainer and recorded in the advisory timeline.
+
+This policy is prospective. Advisories that were already public before 2026-10-24 retain their actual historical timelines and are not represented as having followed a retroactive 90-day embargo.
+
+## Publication safeguards
+
+Reports contain only the technical information needed to understand, reproduce, and remediate the vulnerability. Reproduction steps use synthetic laboratory evidence. Customer hostnames, IP addresses, credentials, session values, real user information, ticket contents, and production data are not published in this repository.
+
+## Advisories
+
+| Advisory | CVE | Status | Product | Vulnerability |
+| --- | --- | --- | --- | --- |
+| [TTA-2026-001](TTA-2026-001/) | — | CVE request pending | Request Tracker 5.0.5 | REST 1.0 group membership authorization bypass |
+| [TTA-2026-002](TTA-2026-002/) | — | CVE request pending | Request Tracker 5.0.5 | CustomFieldValue parent authorization bypass |
+| [TTA-2026-003](TTA-2026-003/) | — | CVE request pending | Request Tracker 5.0.5 | SavedSearch cross-user disclosure |
+| [TTA-2026-004](TTA-2026-004/) | — | CVE request pending | Request Tracker 5.0.5 | `RT::Attribute` authorization fail-open |
+| [TTA-2026-005](TTA-2026-005/) | [CVE-2026-114243](https://www.cve.org/CVERecord?id=CVE-2026-114243) | Published | dhikshitha29 Insurance-Management-System | Unauthenticated SQL injection in `EditPolicyHolder.php` |
+| [TTA-2026-006](TTA-2026-006/) | [CVE-2026-114245](https://www.cve.org/CVERecord?id=CVE-2026-114245) | Published | dhikshitha29 Insurance-Management-System | Unauthenticated administrator account creation |
 
 TTA-2026-004 combines the read, update, and delete effects of one `RT::Attribute` fail-open authorization root cause. It is submitted as one vulnerability unless the assigning CNA determines that the affected paths are independently fixable.
+
+## Existing disclosure history
+
+- The Request Tracker vulnerabilities were privately reported to Best Practical at `security@bestpractical.com` on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response, fix confirmation, or CVE assignment had been received at publication time.
+- The Insurance-Management-System vulnerabilities were publicly reported to the upstream project on 2026-10-07. VulDB, acting as the CNA, published CVE-2026-114243 and CVE-2026-114245 on 2026-10-21. No upstream response or fix is known at the time of this update.
 
 ## Researcher
 

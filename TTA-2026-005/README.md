@@ -1,9 +1,11 @@
-# CVE-2026-114243: Insurance-Management-System unauthenticated SQL injection in EditPolicyHolder.php
+# TTA-2026-005: Insurance-Management-System unauthenticated SQL injection in EditPolicyHolder.php (CVE-2026-114243)
 
 ## Status
 
-Published by the VulDB CNA on 2026-10-21 as CVE-2026-114243. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.
+TTA-2026-005 was published by the VulDB CNA on 2026-10-21 as CVE-2026-114243. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.
 
+- Local advisory: `TTA-2026-005`
+- CVE: `CVE-2026-114243`
 - CVE state: `PUBLISHED`
 - VulDB submission: `1018587`
 - VulDB entry: `VDB-424678`
@@ -99,7 +101,7 @@ The CNA's CVSS 3.1 score is used as the primary severity value here. Consumers s
 
 - 2026-10-07: Public upstream issue opened with reproduction details.
 - 2026-10-21: VulDB published VDB-424678 and CVE-2026-114243.
-- 2026-10-24: This repository advisory was published.
+- 2026-10-24: This repository advisory was published as TTA-2026-005.
 
 ## References
 
