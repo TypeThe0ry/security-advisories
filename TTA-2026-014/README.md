@@ -8,11 +8,17 @@ Compromised ASP.NET machine-key material allows offline creation of CIMS authent
 
 ### Summary
 
-After authorized host-level access to the application key material, a synthetic authentication ticket was accepted by CIMS and produced an administrator session without repeating password or MFA authentication.
+CIMS relies on ASP.NET machine-key material to protect its authentication ticket. In a controlled test performed after obtaining authorized host-level key access, a synthetic authentication ticket was accepted by CIMS and produced an administrator session without repeating password or MFA authentication.
+
 
 ### Affected Version
 
-UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 deployment. Vendor, version, and build are not publicly identified.
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Visible identity integration: SecureAuth script loaded by the public login page
+- Vendor, source repository, version, and build: not publicly identified
+
 
 ### Vulnerability Type
 
@@ -26,19 +32,25 @@ ASP.NET authentication-ticket validation and machine-key configuration. Exact ke
 
 The application accepts tickets signed with the shared machine-key material. Once that material is readable after host or deployment compromise, an attacker can create tickets offline.
 
+
+ASP.NET authentication tickets are designed to be accepted by every application node that has the same signing and validation configuration. That makes the key material a trust anchor for the CIMS session layer. If the key is copied from a host, backup, deployment package, or secret store, the holder can create tickets offline without contacting the identity provider.
+
+The observed result is a consequence of that trust model after key access was already obtained. It does not establish that the public login page exposes the key or that a low-privilege account can read it.
+
+
 ### Steps to Reproduce
 
-1. Use a disposable staging copy and a synthetic administrator account.
-2. Obtain test-only key material through an approved host-level access procedure.
-3. Create a synthetic ticket using the staging application’s documented ticket format.
-4. Submit it to the staging application and observe whether it is accepted.
-5. Rotate the key, expire sessions, and confirm that the old synthetic ticket is rejected.
+ASP.NET authentication tickets are designed to be accepted by every application node that has the same signing and validation configuration. That makes the key material a trust anchor for the CIMS session layer. If the key is copied from a host, backup, deployment package, or secret store, the holder can create tickets offline without contacting the identity provider.
 
-Do not use production key material, cookies, claims, or administrator accounts.
+The observed result is a consequence of that trust model after key access was already obtained. It does not establish that the public login page exposes the key or that a low-privilege account can read it.
+
 
 ### Impact
 
-Password rotation alone may not invalidate tickets forged with the compromised key. The impact is conditional on prior host, backup, deployment, or secret-store access.
+Disclosure of the machine-key material allows offline creation of authentication tickets for identities trusted by the application. Rotating account passwords alone does not invalidate tickets forged with the compromised key.
+
+This report documents the consequence of key compromise. It does not identify a separate remote path that exposes the key.
+
 
 ### CVSS
 
@@ -47,38 +59,6 @@ No independent CVSS score is assigned because the observed path requires prior h
 ## Status
 
 Published on 2026-10-24 as a post-compromise CIMS impact report. This is not a CVE request.
-
-## Summary
-
-CIMS relies on ASP.NET machine-key material to protect its authentication ticket. In a controlled test performed after obtaining authorized host-level key access, a synthetic authentication ticket was accepted by CIMS and produced an administrator session without repeating password or MFA authentication.
-
-## Affected application
-
-- Application: UWCSEA College Information Management System (CIMS)
-- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
-- Observable technology: ASP.NET MVC 5 on Microsoft IIS
-- Visible identity integration: SecureAuth script loaded by the public login page
-- Vendor, source repository, version, and build: not publicly identified
-
-## Security impact
-
-Disclosure of the machine-key material allows offline creation of authentication tickets for identities trusted by the application. Rotating account passwords alone does not invalidate tickets forged with the compromised key.
-
-This report documents the consequence of key compromise. It does not identify a separate remote path that exposes the key.
-
-## Expected result
-
-Authentication-signing keys should be protected as high-value secrets, rotated after suspected host compromise, and coupled with a session-revocation mechanism. Privileged access should also require a current MFA assurance state rather than trusting only a locally signed ticket.
-
-## Observed result
-
-After the key material was available, a synthetic ticket was accepted as an authenticated CIMS administrator session.
-
-## Trust model
-
-ASP.NET authentication tickets are designed to be accepted by every application node that has the same signing and validation configuration. That makes the key material a trust anchor for the CIMS session layer. If the key is copied from a host, backup, deployment package, or secret store, the holder can create tickets offline without contacting the identity provider.
-
-The observed result is a consequence of that trust model after key access was already obtained. It does not establish that the public login page exposes the key or that a low-privilege account can read it.
 
 ## Preconditions
 
@@ -132,11 +112,6 @@ The assessment used a synthetic ticket and did not use a real account, real cook
 - Force all existing sessions to expire after rotation and verify that tickets signed with the old key are rejected.
 - Avoid sharing the same authentication key across unrelated applications or environments.
 - Require a current MFA assurance marker for privileged operations.
-
-## Classification
-
-- Post-compromise credential and key-management impact.
-- No independent CVSS score is assigned because the observed path required prior host-level key access.
 
 ## Evidence scope
 

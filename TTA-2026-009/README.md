@@ -8,11 +8,22 @@ Missing server-side OTP enforcement in CIMS password recovery allows unauthentic
 
 ### Summary
 
-The final password-reset operation accepts a valid recovery reference before the server has recorded successful OTP completion. A synthetic account was reset and then authenticated with the new password without completing OTP.
+The assessed CIMS password-recovery workflow authorizes the final password change without requiring the server-side recovery transaction to record successful OTP verification. An unauthenticated requester can obtain a recovery transaction reference and use it to set a new password before completing the intended identity challenge.
+
+The behavior was verified end to end: a synthetic account accepted the new password and obtained an authenticated session. An invalid recovery reference was rejected as a negative control.
+
 
 ### Affected Version
 
-UWCSEA College Information Management System (CIMS), public ASP.NET MVC 5 deployment. Vendor, source repository, version, and build are not publicly identified.
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Public ownership evidence: UWCSEA describes CIMS as its College Information Management System and student management system.
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Visible identity integration: SecureAuth script loaded by the public login page
+- Vendor, source repository, version, and build: not publicly identified
+
+The public link identifies the affected application. The page and its asset layout indicate a UWCSEA-specific application or customized deployment, but do not establish whether the implementation was written entirely by UWCSEA or delivered by a third-party contractor.
+
 
 ### Vulnerability Type
 
@@ -25,90 +36,6 @@ Application flow: `ForgotPassword` → OTP step → `ResetPassword` → `Login`.
 The implementation source is not public. The tested behavior identifies the final password-reset handler as the affected authorization boundary.
 
 ### Root Cause
-
-The recovery reference is issued before OTP completion and is treated as sufficient authorization for the final reset. The server does not require a successful OTP state bound to the same account and recovery transaction.
-
-### Steps to Reproduce
-
-1. In an approved staging copy, start password recovery for a synthetic account.
-2. Submit the initial recovery request and receive the staging recovery reference.
-3. Stop before entering or approving OTP.
-4. Open the final reset step directly with that reference.
-5. Submit a new synthetic password.
-6. Confirm that the reset is accepted and that normal login succeeds with the new password.
-7. Repeat with an invalid reference, a replayed reference, and a reference bound to another synthetic account; each should be rejected after remediation.
-
-Use only synthetic accounts and redacted evidence.
-
-### Impact
-
-An unauthenticated requester who knows a valid username may take over the corresponding CIMS account. Directory-backed password impact depends on the deployment's account mapping and service permissions.
-
-### CVSS
-
-`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` — 9.8 Critical, provisional.
-
-## Status
-
-Published on 2026-10-24. Product owner, vendor, version, and build are not yet confirmed. CVE eligibility is pending product attribution.
-
-## Summary
-
-The assessed CIMS password-recovery workflow authorizes the final password change without requiring the server-side recovery transaction to record successful OTP verification. An unauthenticated requester can obtain a recovery transaction reference and use it to set a new password before completing the intended identity challenge.
-
-The behavior was verified end to end: a synthetic account accepted the new password and obtained an authenticated session. An invalid recovery reference was rejected as a negative control.
-
-## Affected application
-
-- Application: UWCSEA College Information Management System (CIMS)
-- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
-- Public ownership evidence: UWCSEA describes CIMS as its College Information Management System and student management system.
-- Observable technology: ASP.NET MVC 5 on Microsoft IIS
-- Visible identity integration: SecureAuth script loaded by the public login page
-- Vendor, source repository, version, and build: not publicly identified
-
-The public link identifies the affected application. The page and its asset layout indicate a UWCSEA-specific application or customized deployment, but do not establish whether the implementation was written entirely by UWCSEA or delivered by a third-party contractor.
-
-## Security impact
-
-An attacker who knows a valid username can take over the corresponding CIMS account without knowing its existing password or completing the OTP challenge. The affected deployment also linked some CIMS identities to an enterprise directory, so the same root cause could change a linked directory password. That directory impact depends on the deployment's identity mapping and service permissions.
-
-## Expected result
-
-The server should permit the password change only after the same recovery transaction has completed OTP verification for the same account. The transaction must then be consumed exactly once.
-
-## Observed result
-
-The final password-change step accepted a recovery transaction that had not completed OTP verification. The synthetic account could then authenticate with the new password.
-
-## Affected workflow
-
-The affected flow has four logical stages:
-
-1. A requester starts password recovery for a known account identifier.
-2. The application creates a recovery transaction and returns a reference that is intended to be usable only after the challenge is completed.
-3. The requester is expected to complete an OTP or equivalent identity challenge.
-4. The application accepts the recovery transaction at the final password-change stage and changes the account password.
-
-The defect is in the transition between stages 3 and 4. The final operation checks that a recovery reference exists and is usable, but does not require a server-side record showing that the challenge for the same account and transaction has succeeded.
-
-## Reproduction in a staging environment
-
-Run this sequence only against a UWCSEA-approved staging copy or a disposable clone with a synthetic account. Use `<redacted>` for every token, cookie, username, and password in any shared evidence.
-
-1. Open `GET /cims/Account/ForgotPassword` and keep the test session and anti-forgery state in a local staging browser or test-only cookie jar.
-2. Submit the normal recovery request to `POST /cims/Account/ForgotPassword` for a synthetic username. The request should be sent through the normal application form with the anti-forgery field and the synthetic username.
-3. Record the response status and redirect target. In the vulnerable behavior, the response returns a recovery reference and points the browser toward the OTP step, represented by a path similar to `ForgotPasswordOtp`.
-4. Stop at this point. Do not enter or approve an OTP.
-5. Open the final reset page directly with the same staging recovery reference, using a path similar to `GET /cims/Account/ResetPassword?accessKey=<redacted>`.
-6. Inspect the response. In the vulnerable behavior, the application renders the password-reset form and includes the account and recovery reference even though no server-side OTP-success state exists.
-7. Submit the final reset form to `POST /cims/Account/ResetPassword` with the synthetic account, the same redacted recovery reference, the anti-forgery field, and a new synthetic password.
-8. In the vulnerable behavior, the application returns a successful reset result even though the OTP step was skipped.
-9. Submit the new synthetic password through the normal `POST /cims/Account/Login` flow. In the vulnerable behavior, the login succeeds and the application creates an authenticated session.
-
-The key comparison is between step 5 and step 7: the reset page and reset operation accept a valid recovery reference without checking that the corresponding OTP challenge was completed.
-
-## Root cause
 
 The recovery reference is issued before the identity challenge is complete, but the final reset handler treats that reference as a complete password-change authorization. The OTP pages are part of the intended browser sequence, yet the server does not persist and enforce a successful challenge state tied to the same account and transaction.
 
@@ -135,6 +62,48 @@ else:
 ```
 
 The visible OTP page is therefore not the security boundary. The security boundary is the authorization check performed by the final password-reset handler.
+
+
+### Steps to Reproduce
+
+Run this sequence only against a UWCSEA-approved staging copy or a disposable clone with a synthetic account. Use `<redacted>` for every token, cookie, username, and password in any shared evidence.
+
+1. Open `GET /cims/Account/ForgotPassword` and keep the test session and anti-forgery state in a local staging browser or test-only cookie jar.
+2. Submit the normal recovery request to `POST /cims/Account/ForgotPassword` for a synthetic username. The request should be sent through the normal application form with the anti-forgery field and the synthetic username.
+3. Record the response status and redirect target. In the vulnerable behavior, the response returns a recovery reference and points the browser toward the OTP step, represented by a path similar to `ForgotPasswordOtp`.
+4. Stop at this point. Do not enter or approve an OTP.
+5. Open the final reset page directly with the same staging recovery reference, using a path similar to `GET /cims/Account/ResetPassword?accessKey=<redacted>`.
+6. Inspect the response. In the vulnerable behavior, the application renders the password-reset form and includes the account and recovery reference even though no server-side OTP-success state exists.
+7. Submit the final reset form to `POST /cims/Account/ResetPassword` with the synthetic account, the same redacted recovery reference, the anti-forgery field, and a new synthetic password.
+8. In the vulnerable behavior, the application returns a successful reset result even though the OTP step was skipped.
+9. Submit the new synthetic password through the normal `POST /cims/Account/Login` flow. In the vulnerable behavior, the login succeeds and the application creates an authenticated session.
+
+The key comparison is between step 5 and step 7: the reset page and reset operation accept a valid recovery reference without checking that the corresponding OTP challenge was completed.
+
+
+### Impact
+
+An attacker who knows a valid username can take over the corresponding CIMS account without knowing its existing password or completing the OTP challenge. The affected deployment also linked some CIMS identities to an enterprise directory, so the same root cause could change a linked directory password. That directory impact depends on the deployment's identity mapping and service permissions.
+
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` — 9.8 Critical, provisional.
+
+## Status
+
+Published on 2026-10-24. Product owner, vendor, version, and build are not yet confirmed. CVE eligibility is pending product attribution.
+
+## Affected workflow
+
+The affected flow has four logical stages:
+
+1. A requester starts password recovery for a known account identifier.
+2. The application creates a recovery transaction and returns a reference that is intended to be usable only after the challenge is completed.
+3. The requester is expected to complete an OTP or equivalent identity challenge.
+4. The application accepts the recovery transaction at the final password-change stage and changes the account password.
+
+The defect is in the transition between stages 3 and 4. The final operation checks that a recovery reference exists and is usable, but does not require a server-side record showing that the challenge for the same account and transaction has succeeded.
 
 ### Controls
 
@@ -170,10 +139,6 @@ No existing session, current password, valid OTP, or administrator role is requi
 
 The last two rows are remediation acceptance cases. They define the security properties that the fixed implementation must demonstrate; they are not claims that the original deployment passed those checks.
 
-## Why the directory impact is conditional
-
-The assessment recorded CIMS identities linked to an enterprise directory. If the CIMS reset service is allowed to change the linked directory password, the same missing state check can affect that directory identity. The scope depends on the service account permissions, account mapping, password-change connector, and whether the target is an application-only identity or a directory-backed identity. The public report therefore treats directory takeover as a deployment-specific impact of the same root cause.
-
 ## Fix acceptance criteria
 
 - A password change is rejected unless the server records a successful challenge for the exact account and transaction.
@@ -200,12 +165,6 @@ The assessment recorded CIMS identities linked to an enterprise directory. If th
 - Invalidate existing sessions and outstanding recovery transactions after a successful password change.
 - Separate public application password recovery from enterprise-directory password administration.
 - Apply an additional controlled recovery process to privileged accounts.
-
-## Classification
-
-- CWE-640: Weak Password Recovery Mechanism for Forgotten Password
-- CWE-287: Improper Authentication
-- Provisional CVSS 3.1: `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` (9.8)
 
 ## Evidence scope
 

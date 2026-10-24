@@ -8,11 +8,17 @@ An unsupported adaptive-authentication workflow prevents MFA-protected CIMS acco
 
 ### Summary
 
-CIMS sends MFA-protected accounts into an adaptive-authentication workflow that the deployment cannot complete. The workflow fails and no authenticated session is created.
+CIMS routes accounts that require MFA into an adaptive-authentication workflow that the assessed deployment cannot complete. The workflow returns an unsupported-flow error and never establishes a session, leaving affected staff and administrator accounts unable to log in through the required MFA path.
+
 
 ### Affected Version
 
-UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 deployment with SecureAuth integration. Vendor, version, and build are not publicly identified.
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Visible identity integration: SecureAuth script loaded by the public login page
+- Vendor, source repository, version, and build: not publicly identified
+
 
 ### Vulnerability Type
 
@@ -26,53 +32,6 @@ CIMS account-assurance decision and SecureAuth adaptive-authentication handoff. 
 
 The account class requiring MFA is mapped to an unavailable or unsupported workflow. The application cannot complete the handoff and does not provide a working recovery path for the affected account class.
 
-### Steps to Reproduce
-
-1. In staging, create a synthetic staff or administrator account that requires MFA.
-2. Start login with valid test credentials.
-3. Observe the adaptive-authentication handoff and the unsupported-workflow failure.
-4. Confirm that no authenticated session is created.
-5. Repeat with a supported workflow and a non-MFA control account.
-
-### Impact
-
-Staff and administrator accounts assigned to the affected MFA policy may be unable to log in. The test did not demonstrate an MFA bypass while the policy remained enabled.
-
-### CVSS
-
-`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L` — 4.3 Medium, provisional.
-
-## Status
-
-Published on 2026-10-24 as a CIMS identity-integration defect. No CVE request has been made.
-
-## Summary
-
-CIMS routes accounts that require MFA into an adaptive-authentication workflow that the assessed deployment cannot complete. The workflow returns an unsupported-flow error and never establishes a session, leaving affected staff and administrator accounts unable to log in through the required MFA path.
-
-## Affected application
-
-- Application: UWCSEA College Information Management System (CIMS)
-- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
-- Observable technology: ASP.NET MVC 5 on Microsoft IIS
-- Visible identity integration: SecureAuth script loaded by the public login page
-- Vendor, source repository, version, and build: not publicly identified
-
-## Security impact
-
-Accounts protected by the affected MFA policy can be locked out of CIMS. Administrators may be tempted to disable MFA to restore access, which removes the intended authentication control instead of fixing the workflow.
-
-The test did not show an MFA bypass while the policy remained enabled.
-
-## Expected result
-
-Every account class that requires MFA should enter a supported workflow and either complete the challenge or fail with a controlled denial. A workflow error must not issue an authenticated session.
-
-## Observed result
-
-The assessed MFA-protected account entered an unsupported workflow and could not complete login. No authenticated session was created in that path.
-
-## Affected login sequence
 
 The integration is expected to make a decision about the account's required assurance level and then hand the login to a supported MFA workflow. The observed sequence stopped at the handoff:
 
@@ -83,6 +42,35 @@ The integration is expected to make a decision about the account's required assu
 5. CIMS does not complete the login and does not create an authenticated session.
 
 The failure is therefore a login availability defect. The application did not treat the error as a successful authentication result.
+
+
+### Steps to Reproduce
+
+The integration is expected to make a decision about the account's required assurance level and then hand the login to a supported MFA workflow. The observed sequence stopped at the handoff:
+
+1. The account is identified as requiring MFA.
+2. CIMS selects the adaptive-authentication path for that account class.
+3. The selected workflow is not available or is not mapped for the deployment.
+4. The provider returns an unsupported-workflow result.
+5. CIMS does not complete the login and does not create an authenticated session.
+
+The failure is therefore a login availability defect. The application did not treat the error as a successful authentication result.
+
+
+### Impact
+
+Accounts protected by the affected MFA policy can be locked out of CIMS. Administrators may be tempted to disable MFA to restore access, which removes the intended authentication control instead of fixing the workflow.
+
+The test did not show an MFA bypass while the policy remained enabled.
+
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L` — 4.3 Medium, provisional.
+
+## Status
+
+Published on 2026-10-24 as a CIMS identity-integration defect. No CVE request has been made.
 
 ## Preconditions
 
@@ -131,12 +119,6 @@ The provider error must not be converted into a password-only login, a partially
 - Test administrator, staff, student, and service-account paths for success, denial, timeout, and unavailable-provider cases.
 - Fail closed without issuing a session when the MFA provider or workflow is unavailable.
 - Provide an audited break-glass recovery process instead of disabling MFA in the normal deployment configuration.
-
-## Classification
-
-- CWE-841: Improper Enforcement of Behavioral Workflow
-- CWE-754: Improper Check for Unusual or Exceptional Conditions
-- Provisional CVSS 3.1: `CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L` (4.3)
 
 ## Evidence scope
 

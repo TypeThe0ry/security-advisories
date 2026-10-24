@@ -8,56 +8,12 @@ DBI ExternalAuth exception handling can leave an externally identified user in t
 
 ### Summary
 
-RT loads or creates the mapped user before DBI password comparison. A malformed external password value can make the constant-time comparison throw an exception before the normal failure cleanup resets `CurrentUser`.
-
-### Affected Version
-
-Request Tracker 5.0.5 with DBI ExternalAuth in the tested configuration. The exact extension build and affected range require vendor confirmation.
-
-### Vulnerability Type
-
-Improper Authentication / Improper Exception Handling (CWE-287; related to CWE-755).
-
-### Affected Code
-
-Files: `lib/RT/Authen/ExternalAuth.pm`, `lib/RT/Authen/ExternalAuth/DBI.pm`, `lib/RT/Util.pm`, and `share/html/Elements/DoAuth`.
-
-### Root Cause
-
-`DoAuth` places the mapped user in `CurrentUser` before password verification. DBI passes malformed values to `RT::Util::constant_time_eq`, which can throw on undefined or length-mismatched input. The exception bypasses the ordinary false-result cleanup path.
-
-### Steps to Reproduce
-
-1. Configure DBI ExternalAuth in an isolated RT 5.0.5 test instance.
-2. Add a synthetic external record with a malformed password field using a disposable test database.
-3. Map the record to a synthetic RT user with limited permissions.
-4. Submit an incorrect password in a clean browser session.
-5. Observe whether the request fails while the same session is still treated as the mapped user.
-6. Repeat with a normal-format password hash and the same incorrect password; the control should remain anonymous.
-
-Keep the malformed value, requests, responses, and session material inside the private test environment.
-
-### Impact
-
-An unauthenticated caller who knows the username of an affected external record may obtain an authenticated session with the mapped RT user's permissions. The actual privileges depend on account mapping and auto-creation policy.
-
-### CVSS
-
-`CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N` — 4.8 Medium, provisional.
-
-## Status
-
-Public CVE candidate; vendor confirmation is pending. This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific vendor notice, fix confirmation, or CVE assignment had been recorded before publication. At the researcher's direction, this candidate was published after evidence review and data sanitization instead of entering a new private embargo; it is a documented exception to the repository's normal private-notice timeline.
-
-The vendor still needs to confirm the supported status and exact version of the DBI ExternalAuth component, the affected release range, and whether this issue is distinct from an existing private fix or authentication advisory.
-
-## Summary
-
 Request Tracker 5.0.5 with DBI ExternalAuth may retain an externally identified user in the web session when password verification raises an exception. `RT::Authen::ExternalAuth::DoAuth` loads or creates the RT user in `CurrentUser` before calling the DBI password check. A `NULL` or length-mismatched password value can cause `RT::Util::constant_time_eq` to throw before the normal authentication-failure cleanup resets the session.
 
 In an isolated test configuration, a login request using the affected external record returned an error but left the same session authenticated as the selected RT user. A control record containing a normal password hash combined with an incorrect password remained anonymous.
 
-## Affected product
+
+### Affected Version
 
 - Vendor: Best Practical Solutions, LLC
 - Product: Request Tracker
@@ -71,11 +27,47 @@ In an isolated test configuration, a login request using the affected external r
 
 Only the recorded RT 5.0.5 laboratory configuration was dynamically tested. The exact ExternalAuth packaging/build and the affected release range require vendor confirmation.
 
-## Security impact
+
+### Vulnerability Type
+
+Improper Authentication / Improper Exception Handling (CWE-287; related to CWE-755).
+
+### Affected Code
+
+Files: `lib/RT/Authen/ExternalAuth.pm`, `lib/RT/Authen/ExternalAuth/DBI.pm`, `lib/RT/Util.pm`, and `share/html/Elements/DoAuth`.
+
+### Root Cause
+
+The external-authentication state machine loads or creates the RT user before it verifies the password. In the [RT 5.0.5 `ExternalAuth.pm` implementation](https://github.com/bestpractical/rt/blob/rt-5.0.5/lib/RT/Authen/ExternalAuth.pm#L413-L485), `CurrentUser` is populated at lines 421-446 and the password check occurs later at line 461. Normal false returns are cleaned up at lines 482-485.
+
+The [DBI password path](https://github.com/bestpractical/rt/blob/rt-5.0.5/lib/RT/Authen/ExternalAuth/DBI.pm#L295-L329) passes the derived password and database value to `RT::Util::constant_time_eq`. The [comparison helper](https://github.com/bestpractical/rt/blob/rt-5.0.5/lib/RT/Util.pm#L183-L191) throws when either value is undefined or their lengths differ.
+
+That exception bypasses the ordinary false-result cleanup in `DoAuth`. The web authentication component invokes `DoAuth` after first checking whether `CurrentUser` is already populated, as shown in [`share/html/Elements/DoAuth`](https://github.com/bestpractical/rt/blob/rt-5.0.5/share/html/Elements/DoAuth#L48-L69). The result is an authentication state committed before the authentication decision is final.
+
+
+### Steps to Reproduce
+
+The isolated test compared a synthetic malformed external-user record with a normal-format control record. The malformed-record attempt returned an error after the external identity had been loaded, while a subsequent harmless access check showed that the same session retained that identity. The normal-format record combined with an incorrect password remained anonymous.
+
+The exact laboratory harness, HTTP requests, session material, and operational proof of concept are intentionally withheld while vendor confirmation and remediation remain pending.
+
+
+### Impact
 
 An unauthenticated attacker who knows the username of an affected external record may obtain an authenticated RT session without a valid password. The resulting access is limited to the permissions of the corresponding RT user, or to the permissions assigned by `UserAutocreateDefaultsOnLogin` if the deployment automatically creates the user.
 
 This report does not claim that RT grants administrator or operating-system privileges by default. Impact depends on the target account and local auto-creation policy.
+
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N` — 4.8 Medium, provisional.
+
+## Status
+
+Public CVE candidate; vendor confirmation is pending. This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific vendor notice, fix confirmation, or CVE assignment had been recorded before publication. At the researcher's direction, this candidate was published after evidence review and data sanitization instead of entering a new private embargo; it is a documented exception to the repository's normal private-notice timeline.
+
+The vendor still needs to confirm the supported status and exact version of the DBI ExternalAuth component, the affected release range, and whether this issue is distinct from an existing private fix or authentication advisory.
 
 ## Prerequisites
 
@@ -85,28 +77,6 @@ This report does not claim that RT grants administrator or operating-system priv
 - A corresponding RT user exists, or RT is configured to auto-create one during external login.
 
 Because the malformed external record is not normally attacker-controlled, attack complexity is assessed as high.
-
-## Validation summary
-
-The isolated test compared a synthetic malformed external-user record with a normal-format control record. The malformed-record attempt returned an error after the external identity had been loaded, while a subsequent harmless access check showed that the same session retained that identity. The normal-format record combined with an incorrect password remained anonymous.
-
-The exact laboratory harness, HTTP requests, session material, and operational proof of concept are intentionally withheld while vendor confirmation and remediation remain pending.
-
-## Expected result
-
-Every failed, exceptional, or timed-out authentication attempt should leave `CurrentUser` anonymous. No external user should be committed to the session until password verification has completed successfully.
-
-## Observed result
-
-In the isolated RT 5.0.5 test, the malformed external password record caused an error response after the RT user had been loaded, and the same session remained authenticated. The normal-hash negative control did not authenticate.
-
-## Root cause
-
-The external-authentication state machine loads or creates the RT user before it verifies the password. In the [RT 5.0.5 `ExternalAuth.pm` implementation](https://github.com/bestpractical/rt/blob/rt-5.0.5/lib/RT/Authen/ExternalAuth.pm#L413-L485), `CurrentUser` is populated at lines 421-446 and the password check occurs later at line 461. Normal false returns are cleaned up at lines 482-485.
-
-The [DBI password path](https://github.com/bestpractical/rt/blob/rt-5.0.5/lib/RT/Authen/ExternalAuth/DBI.pm#L295-L329) passes the derived password and database value to `RT::Util::constant_time_eq`. The [comparison helper](https://github.com/bestpractical/rt/blob/rt-5.0.5/lib/RT/Util.pm#L183-L191) throws when either value is undefined or their lengths differ.
-
-That exception bypasses the ordinary false-result cleanup in `DoAuth`. The web authentication component invokes `DoAuth` after first checking whether `CurrentUser` is already populated, as shown in [`share/html/Elements/DoAuth`](https://github.com/bestpractical/rt/blob/rt-5.0.5/share/html/Elements/DoAuth#L48-L69). The result is an authentication state committed before the authentication decision is final.
 
 ## Relationship to existing CVEs
 
@@ -122,14 +92,6 @@ The different backend and failure mechanism support a vendor scope inquiry, but 
 - Reject `NULL`, malformed, incorrectly encoded, and unexpected-length password fields without throwing through the session state machine.
 - Add negative tests that verify anonymous session state after wrong passwords, malformed records, backend exceptions, and timeouts.
 - Review `UserAutocreateDefaultsOnLogin` so auto-created users receive only the intended minimum permissions.
-
-## Classification
-
-- CWE-287: Improper Authentication
-- Related weakness: CWE-755, Improper Handling of Exceptional Conditions
-- Provisional CVSS 3.1: `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N` (4.8)
-
-The score uses high attack complexity because exploitation depends on a pre-existing malformed external record and DBI ExternalAuth configuration. It uses limited confidentiality and integrity impact as a conservative baseline; deployments where the mapped account has additional rights require a separate environmental assessment.
 
 ## Evidence boundary
 

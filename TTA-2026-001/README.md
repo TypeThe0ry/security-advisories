@@ -8,11 +8,21 @@ Missing authorization in the REST 1.0 group handler exposes members of groups ou
 
 ### Summary
 
-An authenticated RT staff user can request a restricted group through REST 1.0 and receive its membership data even when the user cannot view the group or the object that created it.
+Request Tracker 5.0.5 does not enforce `SeeGroup` or underlying-object visibility when serving group information through the REST 1.0 group endpoint. An authenticated privileged user can retrieve membership information for groups the user is not authorized to view, including role groups associated with tickets the user cannot access.
+
+The same canary group is rejected by the REST 2.0 endpoint and the administrative web interface, establishing that the behavior is specific to the REST 1.0 implementation.
+
 
 ### Affected Version
 
-Request Tracker 5.0.5. Only this version was dynamically tested.
+- Vendor: Best Practical Solutions, LLC
+- Product: Request Tracker
+- Confirmed affected version: 5.0.5
+- Component: `share/html/REST/1.0/Forms/group/default`
+- Endpoint: `/REST/1.0/group/<id>` and the corresponding `group/show` range form
+
+Only RT 5.0.5 was dynamically tested. Other versions have not been claimed as affected without separate verification.
+
 
 ### Vulnerability Type
 
@@ -26,59 +36,10 @@ Affected operation: `GET /REST/1.0/group/<synthetic-group-id>` and the correspon
 
 ### Root Cause
 
-The REST 1.0 handler loads and serializes the `RT::Group` object without enforcing `SeeGroup` and the visibility of the underlying ticket, queue, or other object. REST 2.0 and the administrative web path apply stricter checks.
+The REST 1.0 group display path loads and serializes an `RT::Group` object without checking `SeeGroup` or the visibility of the group's underlying instance object. Newer API and web paths use authorization checks that are absent from this implementation.
+
 
 ### Steps to Reproduce
-
-1. Create a restricted queue, synthetic ticket, and ticket-role group in a staging RT 5.0.5 instance.
-2. Create a synthetic staff user who cannot view the queue, ticket, or group.
-3. Request the synthetic group through `GET /REST/1.0/group/<id>?fields=id,Name,Members`.
-4. Observe that REST 1.0 returns the group and members.
-5. Request the same group through REST 2.0 and the web interface as a control; those paths should deny access.
-
-Use only synthetic IDs and accounts in the reproduction.
-
-### Impact
-
-The caller can map group membership and disclose requestors, owners, Cc, and AdminCc identities from tickets outside the caller's authorization boundary. Write operations were not demonstrated.
-
-### CVSS
-
-`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N` — 4.3 Medium.
-
-## Status
-
-Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.
-
-## Summary
-
-Request Tracker 5.0.5 does not enforce `SeeGroup` or underlying-object visibility when serving group information through the REST 1.0 group endpoint. An authenticated privileged user can retrieve membership information for groups the user is not authorized to view, including role groups associated with tickets the user cannot access.
-
-The same canary group is rejected by the REST 2.0 endpoint and the administrative web interface, establishing that the behavior is specific to the REST 1.0 implementation.
-
-## Affected product
-
-- Vendor: Best Practical Solutions, LLC
-- Product: Request Tracker
-- Confirmed affected version: 5.0.5
-- Component: `share/html/REST/1.0/Forms/group/default`
-- Endpoint: `/REST/1.0/group/<id>` and the corresponding `group/show` range form
-
-Only RT 5.0.5 was dynamically tested. Other versions have not been claimed as affected without separate verification.
-
-## Security impact
-
-An authenticated staff/agent account can enumerate group names and members outside its authorization boundary. For ticket-role groups this discloses the names and email addresses of requestors, owners, Cc, and AdminCc participants for tickets that the attacker cannot view. Range requests can amplify the disclosure into broader organizational and ticket-participation mapping.
-
-The reproduced effect is unauthorized read access; attempts to modify the canary group were rejected.
-
-## Prerequisites
-
-- A valid authenticated privileged RT account.
-- Knowledge or enumeration of a group identifier.
-- No `SeeGroup`, `SeeQueue`, or `ShowTicket` permission is required for the target canary object in the reproduced scenario.
-
-## Reproduction
 
 The following procedure uses only synthetic users and tickets in an isolated RT 5.0.5 instance.
 
@@ -94,17 +55,27 @@ The following procedure uses only synthetic users and tickets in an isolated RT 
 5. Observe that the response includes the canary role-group member despite the caller lacking access to the ticket and group.
 6. Request the same group through REST 2.0 and the administrative web interface. Those paths reject the same account.
 
-## Expected result
 
-RT should disclose a group and its members only when the current user has permission to view the group and, for object-backed role groups, the associated object.
+### Impact
 
-## Observed result
+An authenticated staff/agent account can enumerate group names and members outside its authorization boundary. For ticket-role groups this discloses the names and email addresses of requestors, owners, Cc, and AdminCc participants for tickets that the attacker cannot view. Range requests can amplify the disclosure into broader organizational and ticket-participation mapping.
 
-REST 1.0 returns the group and membership list without enforcing either authorization boundary.
+The reproduced effect is unauthorized read access; attempts to modify the canary group were rejected.
 
-## Root cause
 
-The REST 1.0 group display path loads and serializes an `RT::Group` object without checking `SeeGroup` or the visibility of the group's underlying instance object. Newer API and web paths use authorization checks that are absent from this implementation.
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N` — 4.3 Medium.
+
+## Status
+
+Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.
+
+## Prerequisites
+
+- A valid authenticated privileged RT account.
+- Knowledge or enumeration of a group identifier.
+- No `SeeGroup`, `SeeQueue`, or `ShowTicket` permission is required for the target canary object in the reproduced scenario.
 
 ## Recommended remediation
 
@@ -113,13 +84,6 @@ The REST 1.0 group display path loads and serializes an `RT::Group` object witho
 - Apply the check to single-ID and range/list operations.
 - Add negative cross-API tests proving that REST 1.0, REST 2.0, and the web interface enforce the same authorization result.
 
-## Classification
-
-- CWE-862: Missing Authorization
-- CWE-639: Authorization Bypass Through User-Controlled Key
-- Suggested CVSS 3.1: `AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N` (4.3)
-
 ## Evidence boundary
 
 The vulnerability was dynamically reproduced only in an isolated RT 5.0.5 laboratory instance using synthetic accounts and content. No production system, customer hostname, IP address, credential, cookie, email address, or ticket content is included in this advisory.
-

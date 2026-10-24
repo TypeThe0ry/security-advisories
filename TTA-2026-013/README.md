@@ -8,11 +8,17 @@ Mutable deployment configuration can disable the CIMS MFA enforcement path for p
 
 ### Summary
 
-The assessed administrator workflow relies on a single deployment setting to require MFA. When that setting was disabled in a controlled test, the existing password credentials were sufficient to establish an administrator session.
+CIMS MFA enforcement for the assessed administrator workflow depends on a single mutable deployment setting. When that setting was disabled in a controlled test, the account no longer entered the adaptive-authentication stage and could establish a normal authenticated session with its existing password.
+
 
 ### Affected Version
 
-UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 deployment with SecureAuth integration. Vendor, version, and build are not publicly identified.
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Visible identity integration: SecureAuth script loaded by the public login page
+- Vendor, source repository, version, and build: not publicly identified
+
 
 ### Vulnerability Type
 
@@ -26,18 +32,25 @@ CIMS deployment configuration and privileged-session assurance check. The exact 
 
 A mutable application setting is trusted as the only authority for a privileged MFA decision. The application does not require an independent MFA assurance result before allowing privileged access.
 
+
+The assessed login path makes the MFA decision from an application deployment setting. The setting is read before the account is issued its final session. When the setting requires MFA, the account is sent to the adaptive-authentication path described in TTA-2026-012. When the setting is disabled, the same account can complete password authentication without that additional assurance step.
+
+The problem is the trust placed in one mutable application value for a privileged security decision. The setting can be useful as a configuration input, but it should not be the only authority that determines whether a privileged session is allowed.
+
+
 ### Steps to Reproduce
 
-1. In staging, use an approved configuration administrator and a synthetic privileged account.
-2. Confirm that the normal configuration requires MFA.
-3. Change the test setting through the approved deployment process.
-4. Restart or reload the staging application.
-5. Confirm that the account no longer enters the MFA stage and that the change is logged.
-6. Restore the setting and verify that weaker sessions expire.
+The assessed login path makes the MFA decision from an application deployment setting. The setting is read before the account is issued its final session. When the setting requires MFA, the account is sent to the adaptive-authentication path described in TTA-2026-012. When the setting is disabled, the same account can complete password authentication without that additional assurance step.
+
+The problem is the trust placed in one mutable application value for a privileged security decision. The setting can be useful as a configuration input, but it should not be the only authority that determines whether a privileged session is allowed.
+
 
 ### Impact
 
-Anyone who already has configuration-write access and valid credentials may remove the MFA requirement for privileged login. This report does not demonstrate a remote unauthenticated bypass.
+A person who can modify the application configuration can remove the MFA requirement without changing the account or identity-provider policy. This creates a single control point for a high-value authentication requirement and makes configuration integrity critical to administrator access.
+
+The test required existing configuration-write access and a valid account password. It did not demonstrate a remote unauthenticated MFA bypass.
+
 
 ### CVSS
 
@@ -46,38 +59,6 @@ No independent CVSS score is assigned because the observed path requires configu
 ## Status
 
 Published on 2026-10-24 as a CIMS configuration and architecture report. This is not a CVE request.
-
-## Summary
-
-CIMS MFA enforcement for the assessed administrator workflow depends on a single mutable deployment setting. When that setting was disabled in a controlled test, the account no longer entered the adaptive-authentication stage and could establish a normal authenticated session with its existing password.
-
-## Affected application
-
-- Application: UWCSEA College Information Management System (CIMS)
-- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
-- Observable technology: ASP.NET MVC 5 on Microsoft IIS
-- Visible identity integration: SecureAuth script loaded by the public login page
-- Vendor, source repository, version, and build: not publicly identified
-
-## Security impact
-
-A person who can modify the application configuration can remove the MFA requirement without changing the account or identity-provider policy. This creates a single control point for a high-value authentication requirement and makes configuration integrity critical to administrator access.
-
-The test required existing configuration-write access and a valid account password. It did not demonstrate a remote unauthenticated MFA bypass.
-
-## Expected result
-
-MFA requirements for privileged accounts should be enforced by a centrally managed policy and represented in the authenticated session's assurance state. A local application setting should not silently downgrade a privileged login to password-only authentication.
-
-## Observed result
-
-Disabling the deployment setting removed the adaptive-authentication step and allowed the existing credentials to establish an administrator session.
-
-## Control dependency
-
-The assessed login path makes the MFA decision from an application deployment setting. The setting is read before the account is issued its final session. When the setting requires MFA, the account is sent to the adaptive-authentication path described in TTA-2026-012. When the setting is disabled, the same account can complete password authentication without that additional assurance step.
-
-The problem is the trust placed in one mutable application value for a privileged security decision. The setting can be useful as a configuration input, but it should not be the only authority that determines whether a privileged session is allowed.
 
 ## Preconditions
 
@@ -121,12 +102,6 @@ The assessment did not demonstrate that an ordinary remote user can modify the s
 - Alert on any change that lowers the required authentication assurance.
 - Reject privileged sessions that do not contain the required MFA assurance marker.
 - Use an audited break-glass process for recovery rather than changing the normal MFA policy.
-
-## Classification
-
-- CWE-16: Configuration
-- CWE-693: Protection Mechanism Failure
-- No independent CVSS score is assigned because the observed path already required configuration-write access and valid credentials.
 
 ## Evidence scope
 

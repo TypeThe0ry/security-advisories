@@ -8,11 +8,21 @@ Unescaped `text/calendar` attachment filenames create a stored XSS candidate in 
 
 ### Summary
 
-The calendar attachment display path writes the MIME filename into HTML without escaping it. A filename containing markup is stored with the transaction and rendered when a user views the ticket history.
+Request Tracker 5.0.5 renders the filename of a `text/calendar` MIME attachment in the ticket history without HTML-escaping it. If an attacker-controlled calendar attachment can enter RT through a supported mail-ingress path, injected markup in the filename is stored with the ticket and interpreted when an RT user views the affected transaction.
+
+A synthetic markup-bearing filename was emitted without escaping in an isolated RT 5.0.5 instance. No production system or real user data was used. Browser-side script execution was not separately preserved as evidence, so this report describes the reproduced unsafe HTML sink and the resulting stored-XSS candidate without overstating the test record.
+
 
 ### Affected Version
 
-Request Tracker 5.0.5 was dynamically tested. The same source sink was observed statically in later tags, but those releases were not dynamically tested.
+- Vendor: Best Practical Solutions, LLC
+- Product: Request Tracker
+- Confirmed affected version: 5.0.5
+- Component: `share/html/Elements/ShowTransactionAttachments`
+- Content type: `text/calendar`
+
+Only RT 5.0.5 was dynamically tested. Static review found the same raw filename concatenation in the `rt-5.0.10` and `rt-6.0.3` tags, but those versions were not dynamically tested and are not claimed as affected by this report.
+
 
 ### Vulnerability Type
 
@@ -26,21 +36,35 @@ The filename is concatenated into the `downloadfilename` span without HTML escap
 
 ### Root Cause
 
-The attachment filename is treated as trusted text even though it originates in MIME metadata controlled by the message sender. The display helper writes the value directly into an HTML context.
+The calendar branch reads the attachment filename into `$name` and concatenates it directly into an HTML string:
+
+```perl
+$m->out('<span class="downloadfilename">' . ( $name || 'meeting.ics' ) . '</span>');
+```
+
+The value is not HTML-escaped before it is passed to `$m->out`. The relevant source is visible in the [RT 5.0.5 `ShowTransactionAttachments` implementation](https://github.com/bestpractical/rt/blob/rt-5.0.5/share/html/Elements/ShowTransactionAttachments#L150-L182).
+
+For scope comparison only, the same concatenation is statically visible in the [`rt-5.0.10` tag](https://github.com/bestpractical/rt/blob/rt-5.0.10/share/html/Elements/ShowTransactionAttachments#L168-L183) and the [`rt-6.0.3` tag](https://github.com/bestpractical/rt/blob/rt-6.0.3/share/html/Elements/ShowTransactionAttachments#L162-L177). This source observation does not replace dynamic validation of those releases.
+
 
 ### Steps to Reproduce
 
-1. Use an isolated RT 5.0.5 instance with a synthetic mail gateway and ticket.
-2. Submit a `text/calendar` attachment whose filename contains an inert markup canary.
-3. Open the synthetic ticket history as a separate test user.
-4. Inspect the calendar attachment label in the DOM.
-5. The vulnerable behavior is that the canary is parsed as markup instead of displayed as escaped text.
+The following procedure uses only an inert markup canary in an isolated RT 5.0.5 instance. It does not require executable JavaScript.
 
-Do not use JavaScript, event-handler attributes, or a production mail gateway for this test.
+1. Configure the laboratory instance's supported mail gateway to create or update a synthetic ticket.
+2. Submit a message containing a `text/calendar` MIME part whose filename is an inert HTML canary, such as a unique empty formatting element.
+3. Open the synthetic ticket's transaction history as a test user.
+4. Inspect the filename element in the rendered DOM.
+5. Observe whether the canary is represented as a DOM element instead of escaped text.
+6. Repeat with an ordinary filename as a negative control.
+
 
 ### Impact
 
-If an untrusted sender can deliver the attachment through a supported mail path, a victim viewing the transaction may execute attacker-controlled content in the RT origin. The exact impact depends on mail-ingress permissions and victim privileges.
+Under a configuration where untrusted senders can submit calendar attachments through the normal RT mail workflow, an attacker can persist attacker-controlled HTML in a ticket transaction. When an RT user views the transaction, the browser may interpret that content in the RT origin, creating a stored cross-site scripting condition.
+
+Successful exploitation could allow actions available to the victim's browser session. The exact impact depends on the browser, RT configuration, the victim's permissions, and whether the standard mail-ingress path accepts the crafted MIME filename.
+
 
 ### CVSS
 
@@ -52,28 +76,6 @@ Public CVE candidate; vendor confirmation is pending. This report was published 
 
 The assigning CNA or vendor still needs to determine whether this is a distinct vulnerability, an incomplete fix, or already within the scope of CVE-2025-9158 or CVE-2026-44229.
 
-## Summary
-
-Request Tracker 5.0.5 renders the filename of a `text/calendar` MIME attachment in the ticket history without HTML-escaping it. If an attacker-controlled calendar attachment can enter RT through a supported mail-ingress path, injected markup in the filename is stored with the ticket and interpreted when an RT user views the affected transaction.
-
-A synthetic markup-bearing filename was emitted without escaping in an isolated RT 5.0.5 instance. No production system or real user data was used. Browser-side script execution was not separately preserved as evidence, so this report describes the reproduced unsafe HTML sink and the resulting stored-XSS candidate without overstating the test record.
-
-## Affected product
-
-- Vendor: Best Practical Solutions, LLC
-- Product: Request Tracker
-- Confirmed affected version: 5.0.5
-- Component: `share/html/Elements/ShowTransactionAttachments`
-- Content type: `text/calendar`
-
-Only RT 5.0.5 was dynamically tested. Static review found the same raw filename concatenation in the `rt-5.0.10` and `rt-6.0.3` tags, but those versions were not dynamically tested and are not claimed as affected by this report.
-
-## Security impact
-
-Under a configuration where untrusted senders can submit calendar attachments through the normal RT mail workflow, an attacker can persist attacker-controlled HTML in a ticket transaction. When an RT user views the transaction, the browser may interpret that content in the RT origin, creating a stored cross-site scripting condition.
-
-Successful exploitation could allow actions available to the victim's browser session. The exact impact depends on the browser, RT configuration, the victim's permissions, and whether the standard mail-ingress path accepts the crafted MIME filename.
-
 ## Prerequisites
 
 - An attacker-controlled `text/calendar` MIME part must reach RT through a supported mail-ingress path.
@@ -81,37 +83,6 @@ Successful exploitation could allow actions available to the victim's browser se
 - An authenticated RT user must view the affected ticket transaction.
 
 If the attachment can be introduced only through a customer-specific, incorrectly exposed `NoAuth` route or an otherwise unsupported mail configuration, that condition is deployment-specific and the CVE eligibility and CVSS assessment must be reconsidered.
-
-## Safe reproduction
-
-The following procedure uses only an inert markup canary in an isolated RT 5.0.5 instance. It does not require executable JavaScript.
-
-1. Configure the laboratory instance's supported mail gateway to create or update a synthetic ticket.
-2. Submit a message containing a `text/calendar` MIME part whose filename is an inert HTML canary, such as a unique empty formatting element.
-3. Open the synthetic ticket's transaction history as a test user.
-4. Inspect the filename element in the rendered DOM.
-5. Observe whether the canary is represented as a DOM element instead of escaped text.
-6. Repeat with an ordinary filename as a negative control.
-
-## Expected result
-
-The calendar attachment filename should be encoded as text for the HTML context. Markup characters should appear literally and must not create DOM elements.
-
-## Observed result
-
-In the isolated RT 5.0.5 test, a synthetic markup-bearing filename was emitted unescaped inside the calendar download label. Browser-side execution was not separately preserved in the evidence record.
-
-## Root cause
-
-The calendar branch reads the attachment filename into `$name` and concatenates it directly into an HTML string:
-
-```perl
-$m->out('<span class="downloadfilename">' . ( $name || 'meeting.ics' ) . '</span>');
-```
-
-The value is not HTML-escaped before it is passed to `$m->out`. The relevant source is visible in the [RT 5.0.5 `ShowTransactionAttachments` implementation](https://github.com/bestpractical/rt/blob/rt-5.0.5/share/html/Elements/ShowTransactionAttachments#L150-L182).
-
-For scope comparison only, the same concatenation is statically visible in the [`rt-5.0.10` tag](https://github.com/bestpractical/rt/blob/rt-5.0.10/share/html/Elements/ShowTransactionAttachments#L168-L183) and the [`rt-6.0.3` tag](https://github.com/bestpractical/rt/blob/rt-6.0.3/share/html/Elements/ShowTransactionAttachments#L162-L177). This source observation does not replace dynamic validation of those releases.
 
 ## Relationship to existing CVEs
 
@@ -126,13 +97,6 @@ The different source sink is a reason to request scope review, not proof that a 
 - Use a shared text-rendering helper instead of assembling HTML with untrusted attachment metadata.
 - Add regression tests with markup-bearing MIME filenames for calendar and non-calendar attachments.
 - Verify the end-to-end mail-ingress path and ensure unauthenticated web routes are not exposed as a substitute for a trusted MTA configuration.
-
-## Classification
-
-- CWE-79: Improper Neutralization of Input During Web Page Generation
-- Provisional CVSS 3.1, only if unauthenticated delivery through supported mail ingress is confirmed: `CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N` (6.1)
-
-The score is provisional. It must be recalculated if introducing the attachment requires authentication, non-default configuration, or a separate security-boundary failure.
 
 ## Evidence boundary
 
