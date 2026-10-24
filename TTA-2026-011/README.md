@@ -33,16 +33,6 @@ CIMS login account-lifecycle decision path. Exact source files are not public.
 The lifecycle state is returned through a different external response branch. The server does not normalize the status, message, or response shape for failed logins.
 
 
-The observable difference is created by the account-state gate in the login pipeline:
-
-1. The requester submits a username and password.
-2. CIMS resolves the supplied identity and evaluates its lifecycle state.
-3. A disabled or departed staff record takes a different response branch from an unknown or ordinary invalid account.
-4. The requester can compare the result across candidate usernames.
-
-The exact message, status code, response length, and timing are omitted from this public report. Any one of those differences can act as an oracle when it is stable and externally visible.
-
-
 ### Steps to Reproduce
 
 The observable difference is created by the account-state gate in the login pipeline:
@@ -57,10 +47,7 @@ The exact message, status code, response length, and timing are omitted from thi
 
 ### Impact
 
-The response difference can confirm that an account exists and disclose whether it is classified as departed or disabled. This information can support targeted credential attacks or social engineering, but it does not by itself grant access. In the recorded path, the lifecycle check was reached after credential handling, which limits its standalone exploitation value.
-
-
-The information can support password spraying, targeted phishing, or account lifecycle mapping. It does not disclose the password and does not create a session by itself. The low CVSS score reflects that the assessment did not show a direct confidentiality or integrity breach from this response difference alone.
+The response difference can confirm that an account exists and disclose whether it is classified as departed or disabled. This information can support account lifecycle mapping, targeted phishing, or credential attacks, but it does not disclose the password or create a session by itself. In the recorded path, the lifecycle check was reached after credential handling, which limits its standalone exploitation value.
 
 
 ### CVSS

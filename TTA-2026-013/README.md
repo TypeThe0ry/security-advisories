@@ -33,16 +33,14 @@ CIMS deployment configuration and privileged-session assurance check. The exact 
 A mutable application setting is trusted as the only authority for a privileged MFA decision. The application does not require an independent MFA assurance result before allowing privileged access.
 
 
-The assessed login path makes the MFA decision from an application deployment setting. The setting is read before the account is issued its final session. When the setting requires MFA, the account is sent to the adaptive-authentication path described in TTA-2026-012. When the setting is disabled, the same account can complete password authentication without that additional assurance step.
-
-The problem is the trust placed in one mutable application value for a privileged security decision. The setting can be useful as a configuration input, but it should not be the only authority that determines whether a privileged session is allowed.
-
-
 ### Steps to Reproduce
 
-The assessed login path makes the MFA decision from an application deployment setting. The setting is read before the account is issued its final session. When the setting requires MFA, the account is sent to the adaptive-authentication path described in TTA-2026-012. When the setting is disabled, the same account can complete password authentication without that additional assurance step.
-
-The problem is the trust placed in one mutable application value for a privileged security decision. The setting can be useful as a configuration input, but it should not be the only authority that determines whether a privileged session is allowed.
+1. In staging, use an approved configuration administrator and a synthetic privileged account.
+2. Confirm that the normal deployment setting requires MFA and that a normal login enters the MFA workflow.
+3. Change the setting through the approved staging deployment process and reload the application.
+4. Repeat the synthetic privileged login.
+5. Observe that the account completes password authentication without entering the MFA workflow.
+6. Restore the setting and verify that sessions created under the weaker policy are expired.
 
 
 ### Impact

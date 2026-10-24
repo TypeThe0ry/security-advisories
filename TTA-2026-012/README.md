@@ -33,17 +33,6 @@ CIMS account-assurance decision and SecureAuth adaptive-authentication handoff. 
 The account class requiring MFA is mapped to an unavailable or unsupported workflow. The application cannot complete the handoff and does not provide a working recovery path for the affected account class.
 
 
-The integration is expected to make a decision about the account's required assurance level and then hand the login to a supported MFA workflow. The observed sequence stopped at the handoff:
-
-1. The account is identified as requiring MFA.
-2. CIMS selects the adaptive-authentication path for that account class.
-3. The selected workflow is not available or is not mapped for the deployment.
-4. The provider returns an unsupported-workflow result.
-5. CIMS does not complete the login and does not create an authenticated session.
-
-The failure is therefore a login availability defect. The application did not treat the error as a successful authentication result.
-
-
 ### Steps to Reproduce
 
 The integration is expected to make a decision about the account's required assurance level and then hand the login to a supported MFA workflow. The observed sequence stopped at the handoff:

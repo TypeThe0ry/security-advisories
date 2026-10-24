@@ -33,17 +33,6 @@ CIMS login identity-resolution and person/entity mapping path. Exact source file
 The application dereferences the expected person or entity object without validating that the relationship exists and is complete.
 
 
-The failure occurs after the identity provider or local credential check has identified a system or service identity, but before CIMS has finished building its application user context:
-
-1. The login request is accepted for normal authentication processing.
-2. CIMS resolves the identity to an internal account.
-3. The login pipeline expects a related person or entity record.
-4. The relationship is absent or incomplete.
-5. The application dereferences the missing object instead of returning a controlled result.
-
-The exception terminates the request with HTTP 500. Because the session is not committed, the result is denial of service for that identity rather than authentication bypass.
-
-
 ### Steps to Reproduce
 
 The failure occurs after the identity provider or local credential check has identified a system or service identity, but before CIMS has finished building its application user context:

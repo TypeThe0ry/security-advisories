@@ -94,16 +94,7 @@ An attacker who knows a valid username can take over the corresponding CIMS acco
 
 Published on 2026-10-24. Product owner, vendor, version, and build are not yet confirmed. CVE eligibility is pending product attribution.
 
-## Affected workflow
-
-The affected flow has four logical stages:
-
-1. A requester starts password recovery for a known account identifier.
-2. The application creates a recovery transaction and returns a reference that is intended to be usable only after the challenge is completed.
-3. The requester is expected to complete an OTP or equivalent identity challenge.
-4. The application accepts the recovery transaction at the final password-change stage and changes the account password.
-
-The defect is in the transition between stages 3 and 4. The final operation checks that a recovery reference exists and is usable, but does not require a server-side record showing that the challenge for the same account and transaction has succeeded.
+## Validation controls
 
 ### Controls
 

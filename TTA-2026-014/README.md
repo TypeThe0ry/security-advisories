@@ -33,16 +33,15 @@ ASP.NET authentication-ticket validation and machine-key configuration. Exact ke
 The application accepts tickets signed with the shared machine-key material. Once that material is readable after host or deployment compromise, an attacker can create tickets offline.
 
 
-ASP.NET authentication tickets are designed to be accepted by every application node that has the same signing and validation configuration. That makes the key material a trust anchor for the CIMS session layer. If the key is copied from a host, backup, deployment package, or secret store, the holder can create tickets offline without contacting the identity provider.
-
-The observed result is a consequence of that trust model after key access was already obtained. It does not establish that the public login page exposes the key or that a low-privilege account can read it.
-
-
 ### Steps to Reproduce
 
-ASP.NET authentication tickets are designed to be accepted by every application node that has the same signing and validation configuration. That makes the key material a trust anchor for the CIMS session layer. If the key is copied from a host, backup, deployment package, or secret store, the holder can create tickets offline without contacting the identity provider.
+1. Use a disposable staging copy and a synthetic administrator account.
+2. Obtain test-only key material through an approved host-level staging procedure.
+3. Create a synthetic authentication ticket using the staging application's documented ticket format.
+4. Submit it to the staging application and observe whether it is accepted.
+5. Rotate the key, expire existing sessions, and confirm that the old synthetic ticket is rejected.
 
-The observed result is a consequence of that trust model after key access was already obtained. It does not establish that the public login page exposes the key or that a low-privilege account can read it.
+Do not use production key material, cookies, claims, or administrator accounts.
 
 
 ### Impact
