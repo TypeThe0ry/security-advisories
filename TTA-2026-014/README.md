@@ -14,10 +14,6 @@ Disclosure of the machine-key material allows offline creation of authentication
 
 This report documents the consequence of key compromise. It does not identify a separate remote path that exposes the key.
 
-## Finding mapping
-
-- `#97`: machine-key recovery under host-level access and acceptance of a synthetic CIMS authentication ticket.
-
 ## Expected result
 
 Authentication-signing keys should be protected as high-value secrets, rotated after suspected host compromise, and coupled with a session-revocation mechanism. Privileged access should also require a current MFA assurance state rather than trusting only a locally signed ticket.

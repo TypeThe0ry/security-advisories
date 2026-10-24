@@ -12,11 +12,6 @@ CIMS returns distinguishable authentication responses according to an account's 
 
 The response difference can confirm that an account exists and disclose whether it is classified as departed or disabled. This information can support targeted credential attacks or social engineering, but it does not by itself grant access. In the recorded path, the lifecycle check was reached after credential handling, which limits its standalone exploitation value.
 
-## Finding mapping
-
-- `#83`: lifecycle-state response difference.
-- `#87`: duplicate confirmation after a controlled state change.
-
 ## Expected result
 
 Authentication failures should use the same external status, message, timing class, and response structure regardless of whether the username is unknown, the password is wrong, or the account is disabled.

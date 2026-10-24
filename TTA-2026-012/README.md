@@ -14,12 +14,6 @@ Accounts protected by the affected MFA policy can be locked out of CIMS. Adminis
 
 The test did not show an MFA bypass while the policy remained enabled.
 
-## Finding mapping
-
-- `#84`: adaptive-authentication workflow failure.
-- `#88`: duplicate confirmation of the same failed workflow.
-- `#93`: disabling the MFA requirement allowed login to proceed and confirmed that the failed workflow was the blocking stage; that configuration change is documented separately in TTA-2026-013.
-
 ## Expected result
 
 Every account class that requires MFA should enter a supported workflow and either complete the challenge or fail with a controlled denial. A workflow error must not issue an authenticated session.
@@ -58,7 +52,7 @@ Accounts that do not enter the affected MFA policy may continue through a differ
 | Synthetic account | Not required | Supported non-MFA path | Login follows the configured policy |
 | Synthetic account | Required | Challenge rejected or timed out | Denial; no session |
 
-The original finding confirms the unsupported workflow behavior. The remaining rows are the regression cases needed to validate a fix.
+The observed behavior confirms the unsupported workflow. The remaining rows are the regression cases needed to validate a fix.
 
 ## Failure handling requirements
 

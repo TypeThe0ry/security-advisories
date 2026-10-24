@@ -14,10 +14,6 @@ A person who can modify the application configuration can remove the MFA require
 
 The test required existing configuration-write access and a valid account password. It did not demonstrate a remote unauthenticated MFA bypass.
 
-## Finding mapping
-
-- `#93`: controlled change to the MFA enforcement setting and confirmation of the resulting login behavior.
-
 ## Expected result
 
 MFA requirements for privileged accounts should be enforced by a centrally managed policy and represented in the authenticated session's assurance state. A local application setting should not silently downgrade a privileged login to password-only authentication.

@@ -14,11 +14,6 @@ Affected system or service identities cannot complete interactive login. The exc
 
 No authentication bypass or unauthorized session was observed for this issue.
 
-## Finding mapping
-
-- `#82`: login failure for a system identity without the expected relationship.
-- `#86`: duplicate confirmation of the same null-reference path.
-
 ## Expected result
 
 The application should handle an identity without a linked person record explicitly. It should either authorize the supported system-account workflow or return the same controlled authentication failure used for other denied logins.

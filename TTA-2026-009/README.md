@@ -14,15 +14,6 @@ The behavior was verified end to end: a synthetic account accepted the new passw
 
 An attacker who knows a valid username can take over the corresponding CIMS account without knowing its existing password or completing the OTP challenge. The affected deployment also linked some CIMS identities to an enterprise directory, so the same root cause could change a linked directory password. That directory impact depends on the deployment's identity mapping and service permissions.
 
-## Finding mapping
-
-- `#78`: core password-recovery state-machine flaw.
-- `#79`: distinguishable recovery responses that assist username enumeration.
-- `#81`: duplicate record of the directory-linked impact.
-- `#85`: confirmation that the same recovery path affected a linked directory identity.
-
-These records are grouped into one report because they concern the same recovery surface. `#81` and `#85` are duplicate or downstream impact records rather than separate vulnerabilities.
-
 ## Expected result
 
 The server should permit the password change only after the same recovery transaction has completed OTP verification for the same account. The transaction must then be consumed exactly once.
