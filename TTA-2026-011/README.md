@@ -25,6 +25,56 @@ Authentication failures should use the same external status, message, timing cla
 
 The response changed according to the staff lifecycle state, making that state externally distinguishable.
 
+## Affected decision path
+
+The observable difference is created by the account-state gate in the login pipeline:
+
+1. The requester submits a username and password.
+2. CIMS resolves the supplied identity and evaluates its lifecycle state.
+3. A disabled or departed staff record takes a different response branch from an unknown or ordinary invalid account.
+4. The requester can compare the result across candidate usernames.
+
+The exact message, status code, response length, and timing are omitted from this public report. Any one of those differences can act as an oracle when it is stable and externally visible.
+
+## Preconditions
+
+- The requester can reach the login function.
+- The requester has a candidate username or a source of candidate usernames.
+- The application exposes a stable difference between lifecycle states.
+
+The observed path handled credentials before the lifecycle response, so the issue does not provide a direct password bypass. Its value is account discovery and lifecycle information.
+
+## Verification matrix
+
+| Test case | Account state | Desired external result |
+| --- | --- | --- |
+| Unknown synthetic username | Unknown | Generic authentication failure |
+| Synthetic account with wrong password | Active | Same generic failure |
+| Synthetic disabled account | Disabled | Same generic failure |
+| Synthetic departed account | Departed | Same generic failure |
+| Locked or expired account | Policy-specific | Same generic failure, with detail in server logs only |
+
+The application may keep different internal audit reasons. The difference should not be returned to the requester.
+
+## Security impact boundary
+
+The information can support password spraying, targeted phishing, or account lifecycle mapping. It does not disclose the password and does not create a session by itself. The low CVSS score reflects that the assessment did not show a direct confidentiality or integrity breach from this response difference alone.
+
+## Fix acceptance criteria
+
+- The external status, message class, body shape, and timing class are consistent for all failed logins.
+- The server records the real denial reason in protected logs.
+- Rate limiting and lockout controls apply equally to unknown and known usernames.
+- A lifecycle change invalidates existing sessions and refresh tokens.
+- Account provisioning and deprovisioning events are auditable.
+
+## Suggested vendor triage questions
+
+1. Which lifecycle states currently produce a distinct external response?
+2. Is the difference visible before or after password validation?
+3. Does the same oracle appear in password recovery, SSO, or MFA enrollment?
+4. Can the response be normalized without breaking administrative audit requirements?
+
 ## Recommended remediation
 
 - Return one generic authentication-failure response for unknown, disabled, departed, locked, and invalid-password accounts.

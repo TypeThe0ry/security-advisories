@@ -31,6 +31,62 @@ The server should permit the password change only after the same recovery transa
 
 The final password-change step accepted a recovery transaction that had not completed OTP verification. The synthetic account could then authenticate with the new password.
 
+## Affected workflow
+
+The affected flow has four logical stages:
+
+1. A requester starts password recovery for a known account identifier.
+2. The application creates a recovery transaction and returns a reference that is intended to be usable only after the challenge is completed.
+3. The requester is expected to complete an OTP or equivalent identity challenge.
+4. The application accepts the recovery transaction at the final password-change stage and changes the account password.
+
+The defect is in the transition between stages 3 and 4. The final operation checks that a recovery reference exists and is usable, but does not require a server-side record showing that the challenge for the same account and transaction has succeeded.
+
+The public report intentionally omits the real route names, parameter names, transaction identifiers, response bodies, and account values. Those details are unnecessary to understand the defect and would make the report directly reusable against the assessed deployment.
+
+## Preconditions
+
+- The attacker can reach the public password-recovery function.
+- The attacker knows or can determine a target account identifier.
+- The target account is eligible for the recovery workflow.
+- The deployment accepts the recovery reference at the final password-change step without a completed challenge state.
+
+No existing session, current password, valid OTP, or administrator role is required in the reproduced path.
+
+## Verification matrix
+
+| Test case | Challenge state | Recovery reference | Result |
+| --- | --- | --- | --- |
+| Synthetic target, normal flow | Completed | Bound to target transaction | Password change succeeds as designed |
+| Synthetic target, tested flaw | Not completed | Bound to target transaction | Password change was accepted |
+| Synthetic target, invalid reference | Not applicable | Invalid or unrelated | Request was rejected |
+| Synthetic target, replay check | Previously consumed | Previously used | Must be rejected after remediation |
+| Synthetic target, cross-account check | Completed for another account | Wrong account binding | Must be rejected after remediation |
+
+The last two rows are remediation acceptance cases. They define the security properties that the fixed implementation must demonstrate; they are not claims that the original deployment passed those checks.
+
+## Why the directory impact is conditional
+
+The assessment recorded CIMS identities linked to an enterprise directory. If the CIMS reset service is allowed to change the linked directory password, the same missing state check can affect that directory identity. The scope depends on the service account permissions, account mapping, password-change connector, and whether the target is an application-only identity or a directory-backed identity. The public report therefore treats directory takeover as a deployment-specific impact of the same root cause.
+
+## Fix acceptance criteria
+
+- A password change is rejected unless the server records a successful challenge for the exact account and transaction.
+- The challenge result cannot be supplied only by a browser field or client-side flag.
+- A recovery transaction expires and is single-use.
+- A reference cannot be moved to another account or transaction.
+- A successful reset invalidates older recovery references and relevant existing sessions.
+- Audit records distinguish recovery start, challenge success, password change, and rejection.
+- Privileged and directory-backed accounts use an additional controlled recovery policy.
+
+## Suggested vendor triage questions
+
+1. Which product, version, and build implement the assessed CIMS workflow?
+2. Is the recovery reference intended to authorize the final password change by itself?
+3. Where is the OTP completion state stored and checked server side?
+4. Does the same workflow change application-only and directory-backed passwords?
+5. Which releases contain the fix, and can the fix be tested with replay, cross-account, and incomplete-challenge cases?
+
 ## Recommended remediation
 
 - Implement a server-side state machine for recovery initiation, challenge verification, password-change authorization, and one-time consumption.

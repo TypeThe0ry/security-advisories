@@ -71,3 +71,7 @@ TTA-2026-004 combines the read, update, and delete effects of one `RT::Attribute
 
 TypeThe0ry
 
+## License
+
+Unless an advisory states otherwise, the reports and documentation in this repository are licensed under [CC BY 4.0](LICENSE). Keep the original advisory link and identify any changes when reusing a report. Third-party code, trademarks, personal data, and quoted external material are not relicensed by this notice.
+

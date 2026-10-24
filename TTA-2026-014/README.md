@@ -26,6 +26,56 @@ Authentication-signing keys should be protected as high-value secrets, rotated a
 
 After the key material was available, a synthetic ticket was accepted as an authenticated CIMS administrator session.
 
+## Trust model
+
+ASP.NET authentication tickets are designed to be accepted by every application node that has the same signing and validation configuration. That makes the key material a trust anchor for the CIMS session layer. If the key is copied from a host, backup, deployment package, or secret store, the holder can create tickets offline without contacting the identity provider.
+
+The observed result is a consequence of that trust model after key access was already obtained. It does not establish that the public login page exposes the key or that a low-privilege account can read it.
+
+## Preconditions
+
+- The attacker has already obtained host-level, application-process, backup, deployment, or equivalent secret-read access.
+- The CIMS application uses the exposed key material to validate its authentication ticket.
+- The forged ticket targets an identity that the application accepts for the requested operation.
+
+The assessment used a synthetic ticket and did not use a real account, real cookie, or real key in the public evidence.
+
+## Verification matrix
+
+| Test case | Key state | Session result required after remediation |
+| --- | --- | --- |
+| Synthetic ticket signed with current key | Current | Accepted only when claims and assurance are valid |
+| Synthetic ticket signed with old key | Rotated | Rejected after key rotation |
+| Ticket with missing MFA assurance | Any | Privileged operation rejected |
+| Ticket with modified identity claims | Any | Rejected by signature and claim validation |
+| Existing session after suspected host compromise | Key rotated | Expired and forced to reauthenticate |
+
+## Response steps
+
+1. Treat the key as compromised if the host, backup, deployment package, or secret store was readable by an unauthorized principal.
+2. Rotate the key on every CIMS node that validates the same ticket.
+3. Expire all sessions and refresh tokens issued under the old key.
+4. Review privileged logins and configuration changes during the exposure window.
+5. Check whether the same key was reused by another application or environment.
+6. Re-test old-ticket rejection and privileged MFA enforcement before restoring normal access.
+
+## Design requirements
+
+- Keep signing material in an approved secret-management system.
+- Grant read access only to the application identity and controlled deployment process.
+- Separate keys between applications, environments, and trust domains.
+- Rotate keys after host compromise, backup exposure, or unauthorized deployment access.
+- Require a current MFA assurance result for privileged operations even when the ticket signature is valid.
+- Make key rotation a documented, tested incident-response procedure.
+
+## Suggested vendor triage questions
+
+1. Which CIMS nodes and environments share the ticket validation key?
+2. Which storage locations and deployment artifacts can contain a copy?
+3. Does rotating the key invalidate all existing tickets and refresh tokens?
+4. Are privileged operations gated on a current MFA assurance claim?
+5. Can the product support key versioning during rotation without accepting old tickets indefinitely?
+
 ## Recommended remediation
 
 - Generate a dedicated high-entropy key for CIMS and store it in an approved secret-management system.
