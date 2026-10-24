@@ -2,6 +2,46 @@
 
 **Severity: Medium** — Provisional CVSS 3.1: 4.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L`)
 
+### Title
+
+An unsupported adaptive-authentication workflow prevents MFA-protected CIMS accounts from completing login.
+
+### Summary
+
+CIMS sends MFA-protected accounts into an adaptive-authentication workflow that the deployment cannot complete. The workflow fails and no authenticated session is created.
+
+### Affected Version
+
+UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 deployment with SecureAuth integration. Vendor, version, and build are not publicly identified.
+
+### Vulnerability Type
+
+Improper Workflow Enforcement / Authentication Integration Failure (CWE-841, CWE-754).
+
+### Affected Code
+
+CIMS account-assurance decision and SecureAuth adaptive-authentication handoff. Exact source files and provider configuration are not public.
+
+### Root Cause
+
+The account class requiring MFA is mapped to an unavailable or unsupported workflow. The application cannot complete the handoff and does not provide a working recovery path for the affected account class.
+
+### Steps to Reproduce
+
+1. In staging, create a synthetic staff or administrator account that requires MFA.
+2. Start login with valid test credentials.
+3. Observe the adaptive-authentication handoff and the unsupported-workflow failure.
+4. Confirm that no authenticated session is created.
+5. Repeat with a supported workflow and a non-MFA control account.
+
+### Impact
+
+Staff and administrator accounts assigned to the affected MFA policy may be unable to log in. The test did not demonstrate an MFA bypass while the policy remained enabled.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L` — 4.3 Medium, provisional.
+
 ## Status
 
 Published on 2026-10-24 as a CIMS identity-integration defect. No CVE request has been made.

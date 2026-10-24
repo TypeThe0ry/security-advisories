@@ -2,6 +2,45 @@
 
 **Severity: Medium** — Provisional CVSS 3.1: 4.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L`)
 
+### Title
+
+Missing identity relationships cause an unhandled exception and authentication failure in CIMS.
+
+### Summary
+
+The login pipeline assumes that every accepted identity has a linked person or entity record. A synthetic identity without that relationship reaches a null-reference path, returns HTTP 500, and receives no session.
+
+### Affected Version
+
+UWCSEA College Information Management System (CIMS), public ASP.NET MVC 5 deployment. Vendor, version, and build are not publicly identified.
+
+### Vulnerability Type
+
+Improper Exception Handling / NULL Pointer Dereference (CWE-476, CWE-754).
+
+### Affected Code
+
+CIMS login identity-resolution and person/entity mapping path. Exact source files are not public.
+
+### Root Cause
+
+The application dereferences the expected person or entity object without validating that the relationship exists and is complete.
+
+### Steps to Reproduce
+
+1. In staging, create a synthetic system or service identity without the expected person/entity relationship.
+2. Submit valid test credentials through the normal login flow.
+3. Observe the HTTP 500 response and confirm that no session is created.
+4. Repeat with a complete synthetic user as a control.
+
+### Impact
+
+Affected system or service identities cannot log in. If external responses differ from ordinary login failures, the error can also disclose account data relationships.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L` — 4.3 Medium, provisional.
+
 ## Status
 
 Published on 2026-10-24 as a deployment-level CIMS defect. No CVE request has been made.

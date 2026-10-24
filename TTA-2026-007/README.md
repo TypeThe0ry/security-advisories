@@ -2,6 +2,50 @@
 
 **Severity: Medium** — Provisional CVSS 3.1: 6.1 (`AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N`), conditional on supported unauthenticated mail ingress
 
+### Title
+
+Unescaped `text/calendar` attachment filenames create a stored XSS candidate in Request Tracker.
+
+### Summary
+
+The calendar attachment display path writes the MIME filename into HTML without escaping it. A filename containing markup is stored with the transaction and rendered when a user views the ticket history.
+
+### Affected Version
+
+Request Tracker 5.0.5 was dynamically tested. The same source sink was observed statically in later tags, but those releases were not dynamically tested.
+
+### Vulnerability Type
+
+Stored Cross-Site Scripting (CWE-79).
+
+### Affected Code
+
+File: `share/html/Elements/ShowTransactionAttachments`, calendar branch.
+
+The filename is concatenated into the `downloadfilename` span without HTML escaping.
+
+### Root Cause
+
+The attachment filename is treated as trusted text even though it originates in MIME metadata controlled by the message sender. The display helper writes the value directly into an HTML context.
+
+### Steps to Reproduce
+
+1. Use an isolated RT 5.0.5 instance with a synthetic mail gateway and ticket.
+2. Submit a `text/calendar` attachment whose filename contains an inert markup canary.
+3. Open the synthetic ticket history as a separate test user.
+4. Inspect the calendar attachment label in the DOM.
+5. The vulnerable behavior is that the canary is parsed as markup instead of displayed as escaped text.
+
+Do not use JavaScript, event-handler attributes, or a production mail gateway for this test.
+
+### Impact
+
+If an untrusted sender can deliver the attachment through a supported mail path, a victim viewing the transaction may execute attacker-controlled content in the RT origin. The exact impact depends on mail-ingress permissions and victim privileges.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N` — 6.1 Medium, conditional on supported unauthenticated mail ingress.
+
 ## Status
 
 Public CVE candidate; vendor confirmation is pending. This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific vendor notice, fix confirmation, or CVE assignment had been recorded before publication. At the researcher's direction, this candidate was published after evidence review and data sanitization instead of entering a new private embargo; it is a documented exception to the repository's normal private-notice timeline.

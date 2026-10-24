@@ -2,6 +2,47 @@
 
 **Severity: Medium** — Suggested CVSS 3.1: 4.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N`)
 
+### Title
+
+Missing ownership enforcement in the SavedSearch widget discloses another user's private saved searches.
+
+### Summary
+
+The widget parses a saved-search container and Attribute identifier but loads the Attribute directly by ID. A broad `ShowSavedSearches` permission is used instead of checking ownership of the personal saved search.
+
+### Affected Version
+
+Request Tracker 5.0.5. Only this version was dynamically tested.
+
+### Vulnerability Type
+
+Incorrect Authorization / IDOR (CWE-863; related to CWE-639).
+
+### Affected Code
+
+File: `html/Widgets/SavedSearch`
+
+Demonstrated entry point: `/Search/Chart.html` using the saved-search load parameter.
+
+### Root Cause
+
+The parsed container object is discarded and the Attribute is loaded directly by identifier. The remaining permission check does not verify that the reader owns the personal saved search or has explicit administrative access.
+
+### Steps to Reproduce
+
+1. Create a private synthetic saved search for an owner account.
+2. Give a separate synthetic staff account `ShowSavedSearches`, but no ownership or administrative rights over the owner.
+3. Load the saved search through the normal search page using the synthetic owner and Attribute IDs.
+4. Observe that the reader receives the private description, query, format, or chart data.
+
+### Impact
+
+Private search logic can disclose sensitive keywords, queue and ticket-selection rules, named users, custom-field names, and internal workflow information. Numeric Attribute IDs can make the issue scalable.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N` — 4.3 Medium.
+
 ## Status
 
 Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.

@@ -2,6 +2,49 @@
 
 **Severity: Medium** — Provisional CVSS 3.1: 4.8 (`AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N`)
 
+### Title
+
+DBI ExternalAuth exception handling can leave an externally identified user in the session after password verification fails.
+
+### Summary
+
+RT loads or creates the mapped user before DBI password comparison. A malformed external password value can make the constant-time comparison throw an exception before the normal failure cleanup resets `CurrentUser`.
+
+### Affected Version
+
+Request Tracker 5.0.5 with DBI ExternalAuth in the tested configuration. The exact extension build and affected range require vendor confirmation.
+
+### Vulnerability Type
+
+Improper Authentication / Improper Exception Handling (CWE-287; related to CWE-755).
+
+### Affected Code
+
+Files: `lib/RT/Authen/ExternalAuth.pm`, `lib/RT/Authen/ExternalAuth/DBI.pm`, `lib/RT/Util.pm`, and `share/html/Elements/DoAuth`.
+
+### Root Cause
+
+`DoAuth` places the mapped user in `CurrentUser` before password verification. DBI passes malformed values to `RT::Util::constant_time_eq`, which can throw on undefined or length-mismatched input. The exception bypasses the ordinary false-result cleanup path.
+
+### Steps to Reproduce
+
+1. Configure DBI ExternalAuth in an isolated RT 5.0.5 test instance.
+2. Add a synthetic external record with a malformed password field using a disposable test database.
+3. Map the record to a synthetic RT user with limited permissions.
+4. Submit an incorrect password in a clean browser session.
+5. Observe whether the request fails while the same session is still treated as the mapped user.
+6. Repeat with a normal-format password hash and the same incorrect password; the control should remain anonymous.
+
+Keep the malformed value, requests, responses, and session material inside the private test environment.
+
+### Impact
+
+An unauthenticated caller who knows the username of an affected external record may obtain an authenticated session with the mapped RT user's permissions. The actual privileges depend on account mapping and auto-creation policy.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N` — 4.8 Medium, provisional.
+
 ## Status
 
 Public CVE candidate; vendor confirmation is pending. This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific vendor notice, fix confirmation, or CVE assignment had been recorded before publication. At the researcher's direction, this candidate was published after evidence review and data sanitization instead of entering a new private embargo; it is a documented exception to the repository's normal private-notice timeline.

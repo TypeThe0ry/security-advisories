@@ -2,6 +2,50 @@
 
 **Severity: Medium** — Suggested CVSS 3.1: 4.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N`)
 
+### Title
+
+Missing authorization in the REST 1.0 group handler exposes members of groups outside the caller's visibility scope.
+
+### Summary
+
+An authenticated RT staff user can request a restricted group through REST 1.0 and receive its membership data even when the user cannot view the group or the object that created it.
+
+### Affected Version
+
+Request Tracker 5.0.5. Only this version was dynamically tested.
+
+### Vulnerability Type
+
+Missing Authorization (CWE-862; related to CWE-639).
+
+### Affected Code
+
+File: `share/html/REST/1.0/Forms/group/default`
+
+Affected operation: `GET /REST/1.0/group/<synthetic-group-id>` and the corresponding group range form.
+
+### Root Cause
+
+The REST 1.0 handler loads and serializes the `RT::Group` object without enforcing `SeeGroup` and the visibility of the underlying ticket, queue, or other object. REST 2.0 and the administrative web path apply stricter checks.
+
+### Steps to Reproduce
+
+1. Create a restricted queue, synthetic ticket, and ticket-role group in a staging RT 5.0.5 instance.
+2. Create a synthetic staff user who cannot view the queue, ticket, or group.
+3. Request the synthetic group through `GET /REST/1.0/group/<id>?fields=id,Name,Members`.
+4. Observe that REST 1.0 returns the group and members.
+5. Request the same group through REST 2.0 and the web interface as a control; those paths should deny access.
+
+Use only synthetic IDs and accounts in the reproduction.
+
+### Impact
+
+The caller can map group membership and disclose requestors, owners, Cc, and AdminCc identities from tickets outside the caller's authorization boundary. Write operations were not demonstrated.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N` — 4.3 Medium.
+
 ## Status
 
 Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.

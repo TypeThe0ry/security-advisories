@@ -2,6 +2,45 @@
 
 **Severity: Low** — Provisional CVSS 3.1: 3.7 (`AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N`)
 
+### Title
+
+Different authentication responses disclose CIMS account lifecycle state.
+
+### Summary
+
+CIMS returns a distinguishable response for departed or disabled staff records instead of the same generic failure returned for unknown or invalid accounts.
+
+### Affected Version
+
+UWCSEA College Information Management System (CIMS), public ASP.NET MVC 5 deployment. Vendor, version, and build are not publicly identified.
+
+### Vulnerability Type
+
+Observable Response Discrepancy (CWE-203, CWE-204).
+
+### Affected Code
+
+CIMS login account-lifecycle decision path. Exact source files are not public.
+
+### Root Cause
+
+The lifecycle state is returned through a different external response branch. The server does not normalize the status, message, or response shape for failed logins.
+
+### Steps to Reproduce
+
+1. Create synthetic active, disabled, departed, and unknown test identities in staging.
+2. Submit the same invalid-login test to each account state.
+3. Compare the external status, body shape, message class, and timing.
+4. Confirm that the secure implementation returns one generic failure while retaining detailed reasons in server logs.
+
+### Impact
+
+An unauthenticated requester may confirm account existence and lifecycle state. The behavior does not disclose a password or create a session by itself.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N` — 3.7 Low, provisional.
+
 ## Status
 
 Published on 2026-10-24 as a low-severity CIMS information-disclosure defect. No CVE request has been made.

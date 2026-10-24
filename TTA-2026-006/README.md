@@ -2,6 +2,48 @@
 
 **Severity: High** — CNA-assigned CVSS 3.1: 7.3 (`AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L`); CNA-reported CVSS 4.0: 6.9 (Medium)
 
+### Title
+
+Missing authorization in the administrator-registration handler allows unauthenticated administrator account creation.
+
+### Summary
+
+The registration backend inserts a new administrator record when the submit field is present. It does not require an existing administrator session or check whether the caller is authorized to create administrators.
+
+### Affected Version
+
+Commit: `125362cc21dca20d74091a4913a5096bb58dd837`.
+
+### Vulnerability Type
+
+Missing Authorization / Improper Access Control (CWE-862).
+
+### Affected Code
+
+File: `Admin/includes/Admin-Register-inc.php`.
+
+The handler processes `submit`, `Admin_id`, `password`, and the remaining registration fields before inserting into the `admin` table.
+
+### Root Cause
+
+The application assumes that only the administrative form will reach the handler. The backend does not start or validate an administrator session and treats direct POST access as sufficient authority.
+
+### Steps to Reproduce
+
+1. Deploy the vulnerable commit in an isolated PHP/MySQL test environment.
+2. Ensure the test browser has no administrator session.
+3. Submit the registration form directly to the backend using a unique synthetic administrator ID and test password.
+4. Verify that the handler returns its success path and creates the synthetic row.
+5. Confirm in the isolated database that the row exists, then remove it after testing.
+
+### Impact
+
+An unauthenticated remote caller can create an administrator account and use the normal administrator login path. This crosses the application's primary privilege boundary.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L` — 7.3 High, assigned by VulDB. VulDB also reported CVSS 4.0 6.9 Medium.
+
 ## Status
 
 TTA-2026-006 was published by the VulDB CNA on 2026-10-21 as CVE-2026-114245. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.

@@ -2,6 +2,47 @@
 
 **Severity: Informational** — No independent CVSS score assigned; the observed path requires configuration-write access and valid credentials
 
+### Title
+
+Mutable deployment configuration can disable the CIMS MFA enforcement path for privileged accounts.
+
+### Summary
+
+The assessed administrator workflow relies on a single deployment setting to require MFA. When that setting was disabled in a controlled test, the existing password credentials were sufficient to establish an administrator session.
+
+### Affected Version
+
+UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 deployment with SecureAuth integration. Vendor, version, and build are not publicly identified.
+
+### Vulnerability Type
+
+Security Misconfiguration / Protection Mechanism Failure (CWE-16, CWE-693).
+
+### Affected Code
+
+CIMS deployment configuration and privileged-session assurance check. The exact configuration key is intentionally omitted from the public report.
+
+### Root Cause
+
+A mutable application setting is trusted as the only authority for a privileged MFA decision. The application does not require an independent MFA assurance result before allowing privileged access.
+
+### Steps to Reproduce
+
+1. In staging, use an approved configuration administrator and a synthetic privileged account.
+2. Confirm that the normal configuration requires MFA.
+3. Change the test setting through the approved deployment process.
+4. Restart or reload the staging application.
+5. Confirm that the account no longer enters the MFA stage and that the change is logged.
+6. Restore the setting and verify that weaker sessions expire.
+
+### Impact
+
+Anyone who already has configuration-write access and valid credentials may remove the MFA requirement for privileged login. This report does not demonstrate a remote unauthenticated bypass.
+
+### CVSS
+
+No independent CVSS score is assigned because the observed path requires configuration-write access and valid credentials.
+
 ## Status
 
 Published on 2026-10-24 as a CIMS configuration and architecture report. This is not a CVE request.

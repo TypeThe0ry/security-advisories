@@ -2,6 +2,50 @@
 
 **Severity: Medium** — Suggested CVSS 3.1: 6.5 (`AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N`)
 
+### Title
+
+Missing parent-object authorization in `CustomFieldValue` downloads exposes content from tickets and other objects the caller cannot view.
+
+### Summary
+
+The download handler checks permission on the CustomField definition but does not verify visibility of the ticket, asset, article, or other parent object that owns the value.
+
+### Affected Version
+
+Request Tracker 5.0.5. Only this version was dynamically tested.
+
+### Vulnerability Type
+
+Missing Authorization / IDOR (CWE-862; related to CWE-639).
+
+### Affected Code
+
+File: `share/html/Download/CustomFieldValue/dhandler`
+
+Affected operation: `GET /Download/CustomFieldValue/<synthetic-value-id>/<filename>`.
+
+### Root Cause
+
+The handler authorizes the CustomField itself but does not apply the parent object's `ShowTicket`, `ShowAsset`, `ShowArticle`, or equivalent visibility check before returning the stored value.
+
+### Steps to Reproduce
+
+1. Create a restricted synthetic ticket and attach a long-text or binary CustomField value.
+2. Give a synthetic reader `SeeCustomField`, but no permission to view the restricted ticket.
+3. Confirm that the normal ticket page and REST 2.0 ticket endpoint deny the reader.
+4. Request the synthetic CustomFieldValue through the download handler.
+5. Observe that the value is returned despite the missing parent-object permission.
+
+Use only synthetic content and identifiers in staging.
+
+### Impact
+
+An authenticated user with broad CustomField permission can read long-text or binary data stored on an inaccessible parent object, including internal notes, attachments, identifiers, and workflow data.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N` — 6.5 Medium.
+
 ## Status
 
 Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.

@@ -2,6 +2,48 @@
 
 **Severity: Informational** — No independent CVSS score assigned; the observed path requires prior host-level key access
 
+### Title
+
+Compromised ASP.NET machine-key material allows offline creation of CIMS authentication tickets.
+
+### Summary
+
+After authorized host-level access to the application key material, a synthetic authentication ticket was accepted by CIMS and produced an administrator session without repeating password or MFA authentication.
+
+### Affected Version
+
+UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 deployment. Vendor, version, and build are not publicly identified.
+
+### Vulnerability Type
+
+Post-compromise key-management impact. No standalone remote vulnerability is claimed.
+
+### Affected Code
+
+ASP.NET authentication-ticket validation and machine-key configuration. Exact key locations, ticket purposes, claims, and cookie values are omitted.
+
+### Root Cause
+
+The application accepts tickets signed with the shared machine-key material. Once that material is readable after host or deployment compromise, an attacker can create tickets offline.
+
+### Steps to Reproduce
+
+1. Use a disposable staging copy and a synthetic administrator account.
+2. Obtain test-only key material through an approved host-level access procedure.
+3. Create a synthetic ticket using the staging application’s documented ticket format.
+4. Submit it to the staging application and observe whether it is accepted.
+5. Rotate the key, expire sessions, and confirm that the old synthetic ticket is rejected.
+
+Do not use production key material, cookies, claims, or administrator accounts.
+
+### Impact
+
+Password rotation alone may not invalidate tickets forged with the compromised key. The impact is conditional on prior host, backup, deployment, or secret-store access.
+
+### CVSS
+
+No independent CVSS score is assigned because the observed path requires prior host-level key access.
+
 ## Status
 
 Published on 2026-10-24 as a post-compromise CIMS impact report. This is not a CVE request.

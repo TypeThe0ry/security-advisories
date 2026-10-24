@@ -2,6 +2,48 @@
 
 **Severity: High** — CNA-assigned CVSS 3.1: 7.3 (`AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L`)
 
+### Title
+
+Unauthenticated SQL injection in `EditPolicyHolder.php` allows a remote caller to alter the policy-holder query.
+
+### Summary
+
+The policy-holder edit page concatenates user-controlled values into a SQL query. The surrounding header redirects unauthenticated users but does not terminate request processing, so the backend remains reachable without an agent session.
+
+### Affected Version
+
+Commit: `125362cc21dca20d74091a4913a5096bb58dd837`.
+
+### Vulnerability Type
+
+SQL Injection (CWE-89) combined with missing authentication enforcement.
+
+### Affected Code
+
+File: `Agent/ManagePolicy/EditPolicyHolder.php`.
+
+Affected inputs: `Policy_no` and `Name`, which are concatenated into the query passed to `mysqli_query()`.
+
+### Root Cause
+
+The handler trusts the UI-level agent check and does not enforce a session before executing the query. It also builds SQL from request parameters instead of using parameterized queries for every database operation.
+
+### Steps to Reproduce
+
+1. Deploy the vulnerable commit in a local PHP/MySQL test environment with a synthetic policy-holder row.
+2. Do not create an agent session.
+3. Submit the policy-holder edit request with a synthetic policy number and harmless test values.
+4. Confirm that the handler processes the request instead of terminating with an authentication failure.
+5. Verify the synthetic database row and, in a separate isolated test, use a harmless quote-based input to confirm query-boundary handling without dumping data.
+
+### Impact
+
+An unauthenticated caller can alter the database query and may read or modify policy-holder records. The final impact depends on the database account privileges and server configuration.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L` — 7.3 High, assigned by VulDB.
+
 ## Status
 
 TTA-2026-005 was published by the VulDB CNA on 2026-10-21 as CVE-2026-114243. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.

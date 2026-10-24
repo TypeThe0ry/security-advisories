@@ -2,6 +2,49 @@
 
 **Severity: High** — Suggested CVSS 3.1: 8.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L`)
 
+### Title
+
+Fail-open `RT::Attribute` authorization allows cross-user and system-level read, update, and delete operations.
+
+### Summary
+
+The Attribute permission lookup returns `allow` for names that are not present in its ACL map. Consumers that load an Attribute by identifier without an ownership or container check then treat unsupported Attribute types as authorized.
+
+### Affected Version
+
+Request Tracker 5.0.5. Only this version was dynamically tested.
+
+### Vulnerability Type
+
+Incorrect Authorization / Fail-Open Access Control (CWE-863, CWE-862, CWE-639).
+
+### Affected Code
+
+Files: `lib/RT/Attribute.pm`, `/Prefs/Search.html`, and `share/html/Widgets/SavedSearch`.
+
+Affected operations include Attribute read, update, and delete paths that accept a numeric Attribute identifier.
+
+### Root Cause
+
+`LookupObjectRight` treats an unmapped Attribute name or operation as allowed. Several consumers then load the object by ID without a second ownership or container visibility check. The combination turns an incomplete ACL map into a write-capable authorization bypass.
+
+### Steps to Reproduce
+
+1. In staging, create synthetic user-owned `Dashboard` and `UserLogo` Attributes and a synthetic system `DefaultDashboard` Attribute.
+2. Use a staff account with no ownership or administrative rights over those objects.
+3. Load the victim-owned Attribute through the normal preferences page and record whether its description is exposed.
+4. Use the normal SavedSearch widget save action with the synthetic Attribute ID and a harmless marker; verify whether the victim-owned description changes.
+5. Use the corresponding delete action against a restorable synthetic Attribute.
+6. Repeat with a mapped `SavedSearch` Attribute as a negative control; it should be denied.
+
+### Impact
+
+Depending on the Attribute type and consumer, an authenticated user may read private data, modify another user's dashboard, delete a user-owned object, or change system-level dashboard configuration.
+
+### CVSS
+
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L` — 8.3 High.
+
 ## Status
 
 Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.
