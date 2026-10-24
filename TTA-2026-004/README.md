@@ -1,5 +1,7 @@
 # TTA-2026-004: Request Tracker 5.0.5 RT::Attribute authorization defaults to allow for unmapped attribute types
 
+**Severity: High** — Suggested CVSS 3.1: 8.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L`)
+
 ## Status
 
 Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.

@@ -1,5 +1,7 @@
 # TTA-2026-014: CIMS authentication cookies can be forged after ASP.NET machine-key compromise
 
+**Severity: Informational** — No independent CVSS score assigned; the observed path requires prior host-level key access
+
 ## Status
 
 Published on 2026-10-24 as a post-compromise CIMS impact report. This is not a CVE request.

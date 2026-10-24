@@ -1,5 +1,7 @@
 # TTA-2026-008: Request Tracker 5.0.5 DBI ExternalAuth exception-path authentication bypass candidate
 
+**Severity: Medium** — Provisional CVSS 3.1: 4.8 (`AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N`)
+
 ## Status
 
 Public CVE candidate; vendor confirmation is pending. This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific vendor notice, fix confirmation, or CVE assignment had been recorded before publication. At the researcher's direction, this candidate was published after evidence review and data sanitization instead of entering a new private embargo; it is a documented exception to the repository's normal private-notice timeline.

@@ -1,5 +1,7 @@
 # TTA-2026-009: CIMS password recovery does not enforce OTP completion before password reset
 
+**Severity: Critical** — Provisional CVSS 3.1: 9.8 (`AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H`), pending product attribution and deployment confirmation
+
 ## Status
 
 Published on 2026-10-24. Product owner, vendor, version, and build are not yet confirmed. CVE eligibility is pending product attribution.

@@ -1,5 +1,7 @@
 # TTA-2026-006: Insurance-Management-System unauthenticated administrator account creation (CVE-2026-114245)
 
+**Severity: High** — CNA-assigned CVSS 3.1: 7.3 (`AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L`); CNA-reported CVSS 4.0: 6.9 (Medium)
+
 ## Status
 
 TTA-2026-006 was published by the VulDB CNA on 2026-10-21 as CVE-2026-114245. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.

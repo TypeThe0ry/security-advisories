@@ -1,5 +1,7 @@
 # TTA-2026-001: Request Tracker 5.0.5 REST 1.0 group membership authorization bypass
 
+**Severity: Medium** — Suggested CVSS 3.1: 4.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N`)
+
 ## Status
 
 Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.

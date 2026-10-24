@@ -1,5 +1,7 @@
 # TTA-2026-013: CIMS MFA enforcement depends on a mutable deployment flag
 
+**Severity: Informational** — No independent CVSS score assigned; the observed path requires configuration-write access and valid credentials
+
 ## Status
 
 Published on 2026-10-24 as a CIMS configuration and architecture report. This is not a CVE request.

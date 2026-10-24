@@ -1,5 +1,7 @@
 # TTA-2026-010: CIMS authentication fails for identities without a linked person record
 
+**Severity: Medium** — Provisional CVSS 3.1: 4.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L`)
+
 ## Status
 
 Published on 2026-10-24 as a deployment-level CIMS defect. No CVE request has been made.

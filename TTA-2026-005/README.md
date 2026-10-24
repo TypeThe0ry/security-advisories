@@ -1,5 +1,7 @@
 # TTA-2026-005: Insurance-Management-System unauthenticated SQL injection in EditPolicyHolder.php (CVE-2026-114243)
 
+**Severity: High** — CNA-assigned CVSS 3.1: 7.3 (`AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L`)
+
 ## Status
 
 TTA-2026-005 was published by the VulDB CNA on 2026-10-21 as CVE-2026-114243. The vulnerability was originally reported publicly to the upstream project on 2026-10-07. The upstream issue remains open, and no fixed version is known at the time of publication.

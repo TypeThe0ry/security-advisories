@@ -1,5 +1,7 @@
 # TTA-2026-012: CIMS adaptive-authentication workflow prevents MFA-protected accounts from completing login
 
+**Severity: Medium** — Provisional CVSS 3.1: 4.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L`)
+
 ## Status
 
 Published on 2026-10-24 as a CIMS identity-integration defect. No CVE request has been made.

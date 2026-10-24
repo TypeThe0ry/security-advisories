@@ -1,5 +1,7 @@
 # TTA-2026-011: CIMS authentication responses disclose account lifecycle state
 
+**Severity: Low** — Provisional CVSS 3.1: 3.7 (`AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N`)
+
 ## Status
 
 Published on 2026-10-24 as a low-severity CIMS information-disclosure defect. No CVE request has been made.
