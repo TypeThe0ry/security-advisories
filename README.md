@@ -49,12 +49,15 @@ Reports contain only the technical information needed to understand, reproduce, 
 | [TTA-2026-004](TTA-2026-004/) | — | CVE request pending | Request Tracker 5.0.5 | `RT::Attribute` authorization fail-open |
 | [TTA-2026-005](TTA-2026-005/) | [CVE-2026-114243](https://www.cve.org/CVERecord?id=CVE-2026-114243) | Published | dhikshitha29 Insurance-Management-System | Unauthenticated SQL injection in `EditPolicyHolder.php` |
 | [TTA-2026-006](TTA-2026-006/) | [CVE-2026-114245](https://www.cve.org/CVERecord?id=CVE-2026-114245) | Published | dhikshitha29 Insurance-Management-System | Unauthenticated administrator account creation |
+| [TTA-2026-007](TTA-2026-007/) | — | Vendor confirmation pending | Request Tracker 5.0.5 | `text/calendar` attachment filename stored XSS candidate |
+| [TTA-2026-008](TTA-2026-008/) | — | Vendor confirmation pending | Request Tracker 5.0.5 with DBI ExternalAuth | Exception-path authentication bypass candidate |
 
 TTA-2026-004 combines the read, update, and delete effects of one `RT::Attribute` fail-open authorization root cause. It is submitted as one vulnerability unless the assigning CNA determines that the affected paths are independently fixable.
 
 ## Existing disclosure history
 
-- The Request Tracker vulnerabilities were privately reported to Best Practical at `security@bestpractical.com` on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response, fix confirmation, or CVE assignment had been received at publication time.
+- TTA-2026-001 through TTA-2026-004 were privately reported to Best Practical at `security@bestpractical.com` on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response, fix confirmation, or CVE assignment had been received at publication time.
+- TTA-2026-007 and TTA-2026-008 are public candidates based on isolated RT 5.0.5 reproduction. Vendor scope, duplicate status, affected ranges, fix status, and CVE eligibility remain unconfirmed. No advisory-specific vendor notice had been recorded before publication. At the researcher's direction, both candidates were published after evidence review and data sanitization instead of entering a new private embargo; they are documented exceptions to the repository's normal private-notice timeline.
 - The Insurance-Management-System vulnerabilities were publicly reported to the upstream project on 2026-10-07. VulDB, acting as the CNA, published CVE-2026-114243 and CVE-2026-114245 on 2026-10-21. No upstream response or fix is known at the time of this update.
 
 ## Researcher
