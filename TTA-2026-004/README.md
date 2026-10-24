@@ -51,31 +51,40 @@ The `RT::Attribute` ACL map defines permissions for only a limited set of Attrib
 ### Steps to Reproduce
 #### Reproduction: unauthorized read
 
-
-1. In an isolated RT 5.0.5 instance, create an attacker and a separate victim user.
-2. Create synthetic victim-owned `Dashboard` and scalar `UserLogo` Attributes.
-3. Confirm the attacker has no administrative or ownership rights over the victim.
-4. As the attacker, request:
+1. Deploy RT 5.0.5 in a disposable lab instance and set `RT_BASE` to the lab URL.
+2. Create synthetic users `attacker` and `victim`.
+3. Create victim-owned `Dashboard` and `UserLogo` Attributes containing harmless markers such as `SYNTHETIC-DASHBOARD-CANARY`.
+4. Confirm the attacker has no ownership, `AdminUsers`, or SuperUser rights over the victim.
+5. Request the victim-owned Dashboard Attribute:
 
    ```text
-   GET /Prefs/Search.html?name=RT::Attribute-<VICTIM_DASHBOARD_ATTRIBUTE_ID>
+   GET /Prefs/Search.html?name=RT::Attribute-<SYNTHETIC_DASHBOARD_ATTRIBUTE_ID>
    ```
 
-5. Observe that the victim's private Dashboard description is rendered.
-6. Repeat with the scalar canary Attribute. In the reproduced version, the scalar content is exposed in the generated error page when the page treats it as a hash value.
-7. Use a victim `SavedSearch` Attribute as a negative control; the explicitly mapped Attribute name is denied.
+6. Observe that the synthetic Dashboard description is rendered for the attacker.
+7. Repeat with the synthetic `UserLogo` Attribute and record whether its marker is exposed.
+8. Repeat with a mapped `SavedSearch` Attribute as a negative control; it should be denied.
 
 
 #### Reproduction: unauthorized update and delete
 
+1. Use the same non-administrator attacker and a restorable synthetic victim Attribute.
+2. Submit the normal SavedSearch widget save action with a synthetic Attribute identifier and harmless marker:
 
-1. Use a non-administrator staff account with no rights over a separate victim user or the system Attribute.
-2. Submit the SavedSearch widget's save action while setting `SavedSearchLoad` to a victim-owned, non-`SavedSearch` Attribute identifier.
-3. Verify in the database that the victim-owned synthetic Dashboard description/content changed.
-4. Submit the delete action for a separate victim-owned synthetic UserLogo Attribute.
-5. Verify that the Attribute record was removed.
-6. Repeat the update against a synthetic or safely restorable system `DefaultDashboard` canary and verify the change, then restore it.
-7. Repeat against an Attribute whose actual name is `SavedSearch`; the explicitly mapped name is rejected, providing a negative control for the fail-open mapping.
+   ```text
+   GET /Search/Chart.html?SavedSearchLoad=RT::User-<VICTIM_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchSave=1&SavedSearchDescription=SYNTHETIC-UPDATED-CANARY
+   ```
+
+3. Verify through the lab database or the owner view that the victim-owned Dashboard description changed.
+4. Submit the corresponding delete action for a separate synthetic UserLogo Attribute:
+
+   ```text
+   GET /Search/Chart.html?SavedSearchLoad=RT::User-<VICTIM_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchDelete=1
+   ```
+
+5. Verify that the synthetic Attribute was removed, then restore the lab database snapshot.
+6. Repeat against a restorable system `DefaultDashboard` canary and verify whether the system value changes.
+7. Repeat with an actual `SavedSearch` Attribute as a negative control; the explicit mapping should deny the operation.
 
 Generic request shapes used in the isolated test were:
 

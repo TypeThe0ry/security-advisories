@@ -44,17 +44,22 @@ Demonstrated entry point: `/Search/Chart.html` using the saved-search load param
 
 The following procedure uses two synthetic staff users in an isolated RT 5.0.5 instance.
 
-1. As the owner, create a private personal saved search containing a unique harmless marker.
-2. Grant a separate reader account `ShowSavedSearches`, but do not grant ownership or administrative rights over the owner.
-3. As the reader, request:
+1. Deploy RT 5.0.5 in a disposable lab instance and set `RT_BASE` to the lab URL.
+2. Create synthetic users `owner` and `reader`. Give `reader` the broad `ShowSavedSearches` right, but no ownership, `AdminUsers`, or SuperUser rights over `owner`.
+3. As `owner`, create a private personal saved search with a unique marker such as `SYNTHETIC-SAVEDSEARCH-CANARY`. Record the synthetic Attribute ID.
+4. Confirm that the reader cannot manage or view the owner's private search through the normal search builder.
+5. Load the search through the chart endpoint using the parsed container reference:
 
-   ```text
-   GET /Search/Chart.html?SavedSearchLoad=RT::User-<OWNER_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchLoadSubmit=1
+   ```bash
+   curl -sS -b reader.jar \
+     "$RT_BASE/Search/Chart.html?SavedSearchLoad=RT::User-<OWNER_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchLoadSubmit=1" \
+     -o chart.html
    ```
 
-4. Observe that the response contains the owner's private saved-search description, query, format, and chart values.
-5. Request the same reference through the normal search builder and results paths; those paths reject or do not load it because they enforce the container check.
-6. As a negative control, repeat with a user lacking `ShowSavedSearches`; the private values are not returned.
+6. Search the response for `SYNTHETIC-SAVEDSEARCH-CANARY`, the private description, or the synthetic query text.
+7. Vulnerable result: the reader receives private search metadata or chart data despite not owning the search.
+8. Compare with the normal search builder and a `reader-no-right` account that lacks `ShowSavedSearches`; both should deny or omit the private values.
+9. Remove the synthetic search after verification and retain only response status, a canary marker, and the test account class.
 
 
 ### Impact
