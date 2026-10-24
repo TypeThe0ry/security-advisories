@@ -51,12 +51,12 @@ Reports contain only the technical information needed to understand, reproduce, 
 | [TTA-2026-006](TTA-2026-006/) | [CVE-2026-114245](https://www.cve.org/CVERecord?id=CVE-2026-114245) | Published | dhikshitha29 Insurance-Management-System | Unauthenticated administrator account creation |
 | [TTA-2026-007](TTA-2026-007/) | — | Vendor confirmation pending | Request Tracker 5.0.5 | `text/calendar` attachment filename stored XSS candidate |
 | [TTA-2026-008](TTA-2026-008/) | — | Vendor confirmation pending | Request Tracker 5.0.5 with DBI ExternalAuth | Exception-path authentication bypass candidate |
-| [TTA-2026-009](TTA-2026-009/) | — | CVE eligibility pending | CIMS, vendor/build unknown | Password recovery accepts reset before OTP completion |
-| [TTA-2026-010](TTA-2026-010/) | — | Published deployment report | CIMS, vendor/build unknown | Unlinked identity record causes authentication failure |
-| [TTA-2026-011](TTA-2026-011/) | — | Published deployment report | CIMS, vendor/build unknown | Authentication responses disclose account lifecycle state |
-| [TTA-2026-012](TTA-2026-012/) | — | Published integration report | CIMS, vendor/build unknown | Adaptive-authentication workflow prevents MFA login |
-| [TTA-2026-013](TTA-2026-013/) | — | Published configuration report | CIMS, vendor/build unknown | MFA enforcement depends on a mutable deployment flag |
-| [TTA-2026-014](TTA-2026-014/) | — | Published impact report | CIMS, vendor/build unknown | Authentication ticket forgery after machine-key compromise |
+| [TTA-2026-009](TTA-2026-009/) | — | CVE eligibility pending | CIMS ASP.NET MVC 5 application, vendor/build unknown | Password recovery accepts reset before OTP completion |
+| [TTA-2026-010](TTA-2026-010/) | — | Published deployment report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Unlinked identity record causes authentication failure |
+| [TTA-2026-011](TTA-2026-011/) | — | Published deployment report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Authentication responses disclose account lifecycle state |
+| [TTA-2026-012](TTA-2026-012/) | — | Published integration report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Adaptive-authentication workflow prevents MFA login |
+| [TTA-2026-013](TTA-2026-013/) | — | Published configuration report | CIMS ASP.NET MVC 5 application, vendor/build unknown | MFA enforcement depends on a mutable deployment flag |
+| [TTA-2026-014](TTA-2026-014/) | — | Published impact report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Authentication ticket forgery after machine-key compromise |
 
 TTA-2026-004 combines the read, update, and delete effects of one `RT::Attribute` fail-open authorization root cause. It is submitted as one vulnerability unless the assigning CNA determines that the affected paths are independently fixable.
 
