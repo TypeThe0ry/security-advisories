@@ -8,6 +8,13 @@ Published on 2026-10-24 as a CIMS identity-integration defect. No CVE request ha
 
 CIMS routes accounts that require MFA into an adaptive-authentication workflow that the assessed deployment cannot complete. The workflow returns an unsupported-flow error and never establishes a session, leaving affected staff and administrator accounts unable to log in through the required MFA path.
 
+## Affected application
+
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Vendor, source repository, version, and build: not publicly identified
+
 ## Security impact
 
 Accounts protected by the affected MFA policy can be locked out of CIMS. Administrators may be tempted to disable MFA to restore access, which removes the intended authentication control instead of fixing the workflow.

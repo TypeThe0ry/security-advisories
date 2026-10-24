@@ -8,6 +8,13 @@ Published on 2026-10-24 as a post-compromise CIMS impact report. This is not a C
 
 CIMS relies on ASP.NET machine-key material to protect its authentication ticket. In a controlled test performed after obtaining authorized host-level key access, a synthetic authentication ticket was accepted by CIMS and produced an administrator session without repeating password or MFA authentication.
 
+## Affected application
+
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Vendor, source repository, version, and build: not publicly identified
+
 ## Security impact
 
 Disclosure of the machine-key material allows offline creation of authentication tickets for identities trusted by the application. Rotating account passwords alone does not invalidate tickets forged with the compromised key.

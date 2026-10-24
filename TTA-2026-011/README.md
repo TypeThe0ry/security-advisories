@@ -8,6 +8,13 @@ Published on 2026-10-24 as a low-severity CIMS information-disclosure defect. No
 
 CIMS returns distinguishable authentication responses according to an account's staff lifecycle state. A response for a departed or disabled staff record differs from the generic response used for an invalid login, allowing a requester to infer the account's business status.
 
+## Affected application
+
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Vendor, source repository, version, and build: not publicly identified
+
 ## Security impact
 
 The response difference can confirm that an account exists and disclose whether it is classified as departed or disabled. This information can support targeted credential attacks or social engineering, but it does not by itself grant access. In the recorded path, the lifecycle check was reached after credential handling, which limits its standalone exploitation value.

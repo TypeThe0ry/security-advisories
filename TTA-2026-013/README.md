@@ -8,6 +8,13 @@ Published on 2026-10-24 as a CIMS configuration and architecture report. This is
 
 CIMS MFA enforcement for the assessed administrator workflow depends on a single mutable deployment setting. When that setting was disabled in a controlled test, the account no longer entered the adaptive-authentication stage and could establish a normal authenticated session with its existing password.
 
+## Affected application
+
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Vendor, source repository, version, and build: not publicly identified
+
 ## Security impact
 
 A person who can modify the application configuration can remove the MFA requirement without changing the account or identity-provider policy. This creates a single control point for a high-value authentication requirement and makes configuration integrity critical to administrator access.

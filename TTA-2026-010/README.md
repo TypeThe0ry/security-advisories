@@ -8,6 +8,13 @@ Published on 2026-10-24 as a deployment-level CIMS defect. No CVE request has be
 
 The CIMS login pipeline assumes that every authenticated identity has a linked person or entity record. When an otherwise valid system identity lacks that relationship, the pipeline dereferences a missing object, returns an HTTP 500 response, and does not establish a session.
 
+## Affected application
+
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Vendor, source repository, version, and build: not publicly identified
+
 ## Security impact
 
 Affected system or service identities cannot complete interactive login. The exceptional response also distinguishes these identities from ordinary invalid usernames, exposing information about account type and data relationships.

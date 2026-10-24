@@ -51,12 +51,12 @@ Reports contain only the technical information needed to understand, reproduce, 
 | [TTA-2026-006](TTA-2026-006/) | [CVE-2026-114245](https://www.cve.org/CVERecord?id=CVE-2026-114245) | Published | dhikshitha29 Insurance-Management-System | Unauthenticated administrator account creation |
 | [TTA-2026-007](TTA-2026-007/) | — | Vendor confirmation pending | Request Tracker 5.0.5 | `text/calendar` attachment filename stored XSS candidate |
 | [TTA-2026-008](TTA-2026-008/) | — | Vendor confirmation pending | Request Tracker 5.0.5 with DBI ExternalAuth | Exception-path authentication bypass candidate |
-| [TTA-2026-009](TTA-2026-009/) | — | CVE eligibility pending | CIMS ASP.NET MVC 5 application, vendor/build unknown | Password recovery accepts reset before OTP completion |
-| [TTA-2026-010](TTA-2026-010/) | — | Published deployment report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Unlinked identity record causes authentication failure |
-| [TTA-2026-011](TTA-2026-011/) | — | Published deployment report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Authentication responses disclose account lifecycle state |
-| [TTA-2026-012](TTA-2026-012/) | — | Published integration report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Adaptive-authentication workflow prevents MFA login |
-| [TTA-2026-013](TTA-2026-013/) | — | Published configuration report | CIMS ASP.NET MVC 5 application, vendor/build unknown | MFA enforcement depends on a mutable deployment flag |
-| [TTA-2026-014](TTA-2026-014/) | — | Published impact report | CIMS ASP.NET MVC 5 application, vendor/build unknown | Authentication ticket forgery after machine-key compromise |
+| [TTA-2026-009](TTA-2026-009/) | — | CVE eligibility pending | UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 | Password recovery accepts reset before OTP completion |
+| [TTA-2026-010](TTA-2026-010/) | — | Published deployment report | UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 | Unlinked identity record causes authentication failure |
+| [TTA-2026-011](TTA-2026-011/) | — | Published deployment report | UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 | Authentication responses disclose account lifecycle state |
+| [TTA-2026-012](TTA-2026-012/) | — | Published integration report | UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 | Adaptive-authentication workflow prevents MFA login |
+| [TTA-2026-013](TTA-2026-013/) | — | Published configuration report | UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 | MFA enforcement depends on a mutable deployment flag |
+| [TTA-2026-014](TTA-2026-014/) | — | Published impact report | UWCSEA College Information Management System (CIMS), ASP.NET MVC 5 | Authentication ticket forgery after machine-key compromise |
 
 TTA-2026-004 combines the read, update, and delete effects of one `RT::Attribute` fail-open authorization root cause. It is submitted as one vulnerability unless the assigning CNA determines that the affected paths are independently fixable.
 
@@ -64,7 +64,7 @@ TTA-2026-004 combines the read, update, and delete effects of one `RT::Attribute
 
 - TTA-2026-001 through TTA-2026-004 were privately reported to Best Practical at `security@bestpractical.com` on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response, fix confirmation, or CVE assignment had been received at publication time.
 - TTA-2026-007 and TTA-2026-008 are public candidates based on isolated RT 5.0.5 reproduction. Vendor scope, duplicate status, affected ranges, fix status, and CVE eligibility remain unconfirmed. No advisory-specific vendor notice had been recorded before publication. At the researcher's direction, both candidates were published after evidence review and data sanitization instead of entering a new private embargo; they are documented exceptions to the repository's normal private-notice timeline.
-- TTA-2026-009 through TTA-2026-014 consolidate all CIMS application and identity-integration findings recorded in the assessment. They were observed in one authorized deployment and published on 2026-10-24 without identifying the organization or environment. The exact product owner, vendor, version, and build remain unknown. TTA-2026-009 is the only current CVE candidate in this group; the remaining reports document lower-severity application, integration, configuration, or post-compromise issues.
+- TTA-2026-009 through TTA-2026-014 cover the publicly reachable [UWCSEA College Information Management System (CIMS) login application](https://webapps.uwcsea.edu.sg/cims/Account/Login). UWCSEA's public pages identify CIMS as its College Information Management System and student management system, but no third-party vendor, product name, source repository, version, or build has been publicly identified. The application exposes ASP.NET MVC 5 and IIS response indicators. TTA-2026-009 is the only current CVE candidate in this group; the remaining reports document lower-severity application, integration, configuration, or post-compromise issues.
 - The Insurance-Management-System vulnerabilities were publicly reported to the upstream project on 2026-10-07. VulDB, acting as the CNA, published CVE-2026-114243 and CVE-2026-114245 on 2026-10-21. No upstream response or fix is known at the time of this update.
 
 ## Researcher

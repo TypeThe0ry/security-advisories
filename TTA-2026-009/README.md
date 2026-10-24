@@ -10,6 +10,16 @@ The assessed CIMS password-recovery workflow authorizes the final password chang
 
 The behavior was verified end to end: a synthetic account accepted the new password and obtained an authenticated session. An invalid recovery reference was rejected as a negative control.
 
+## Affected application
+
+- Application: UWCSEA College Information Management System (CIMS)
+- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
+- Public ownership evidence: UWCSEA describes CIMS as its College Information Management System and student management system.
+- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Vendor, source repository, version, and build: not publicly identified
+
+The public link identifies the affected application. It does not establish whether the implementation was written entirely by UWCSEA or delivered by a third-party contractor.
+
 ## Security impact
 
 An attacker who knows a valid username can take over the corresponding CIMS account without knowing its existing password or completing the OTP challenge. The affected deployment also linked some CIMS identities to an enterprise directory, so the same root cause could change a linked directory password. That directory impact depends on the deployment's identity mapping and service permissions.
