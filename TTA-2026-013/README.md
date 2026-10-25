@@ -35,12 +35,15 @@ A mutable application setting is trusted as the only authority for a privileged 
 
 ### Steps to Reproduce
 
-1. In staging, use an approved configuration administrator and a synthetic privileged account.
-2. Confirm that the normal deployment setting requires MFA and that a normal login enters the MFA workflow.
-3. Change the setting through the approved staging deployment process and reload the application.
-4. Repeat the synthetic privileged login.
-5. Observe that the account completes password authentication without entering the MFA workflow.
-6. Restore the setting and verify that sessions created under the weaker policy are expired.
+1. In an isolated staging copy, use a test configuration administrator and a synthetic privileged account.
+2. Confirm that the normal deployment setting requires MFA and that the synthetic account enters the MFA workflow after password validation.
+3. Snapshot the staging configuration and change only the test MFA setting through the approved deployment process. The production key name and value are intentionally omitted.
+4. Reload the staging application and repeat the synthetic privileged login.
+5. Vulnerable result: the account completes password authentication without entering the MFA workflow and receives a session.
+6. Restore the saved staging configuration, invalidate the test session, and confirm that the account again enters MFA.
+7. Record only the before/after authentication state and the configuration-change audit entry. Do not publish a production configuration file or administrator cookie.
+
+Record the configuration change as a diff with the setting name and values redacted. The test result should include only the pre-change and post-change authentication state, not a production configuration file or administrator cookie.
 
 
 ### Impact

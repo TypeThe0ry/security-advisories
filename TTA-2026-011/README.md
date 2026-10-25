@@ -35,14 +35,27 @@ The lifecycle state is returned through a different external response branch. Th
 
 ### Steps to Reproduce
 
-The observable difference is created by the account-state gate in the login pipeline:
+Run this only with synthetic accounts in staging.
 
-1. The requester submits a username and password.
-2. CIMS resolves the supplied identity and evaluates its lifecycle state.
-3. A disabled or departed staff record takes a different response branch from an unknown or ordinary invalid account.
-4. The requester can compare the result across candidate usernames.
+1. Prepare three staging identities: an unknown username, an active account with valid synthetic credentials, and a disabled or departed synthetic staff account with valid synthetic credentials. Use an isolated staging identity database.
+2. Load `GET /cims/Account/Login` for each test and collect fresh anti-forgery values and session cookies locally.
+3. Submit the same login request shape for each case:
 
-The exact message, status code, response length, and timing are omitted from this public report. Any one of those differences can act as an oracle when it is stable and externally visible.
+   ```text
+   POST /cims/Account/Login
+   __RequestVerificationToken=<STAGING_CSRF_TOKEN>
+   Username=<SYNTHETIC_USERNAME>
+   Password=<VALID_TEST_PASSWORD_FOR_CANARY>
+   Fingerprint=
+   Base64=
+   ReturnUrl=
+   ```
+
+4. Record status, response class, and whether a session is created. Do not retain response bodies containing personal data.
+5. Vulnerable result: the disabled/departed canary receives a stable, distinguishable lifecycle response; the unknown account receives the generic login failure.
+6. Change only the synthetic canary's lifecycle state and repeat to confirm the response difference tracks that state. Restore the account and remove the canary.
+
+The original test reached the lifecycle check after credential handling. Use valid synthetic credentials for the canary; an incorrect password may not reach that branch.
 
 
 ### Impact

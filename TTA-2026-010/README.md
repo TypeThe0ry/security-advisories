@@ -35,15 +35,27 @@ The application dereferences the expected person or entity object without valida
 
 ### Steps to Reproduce
 
-The failure occurs after the identity provider or local credential check has identified a system or service identity, but before CIMS has finished building its application user context:
+Run this only against a staging copy with synthetic identities.
 
-1. The login request is accepted for normal authentication processing.
-2. CIMS resolves the identity to an internal account.
-3. The login pipeline expects a related person or entity record.
-4. The relationship is absent or incomplete.
-5. The application dereferences the missing object instead of returning a controlled result.
+1. In the staging identity source, create `lab-system-a` with a valid synthetic credential but no person/entity relationship. Create `lab-user-a` with a complete relationship as a control.
+2. Open `GET /cims/Account/Login` in a clean staging browser and collect the form's anti-forgery value and session cookie locally. Never include those values in the advisory.
+3. Submit the login form for `lab-system-a` using the staging anti-forgery value:
 
-The exception terminates the request with HTTP 500. Because the session is not committed, the result is denial of service for that identity rather than authentication bypass.
+   ```text
+   POST /cims/Account/Login
+   X-Requested-With: XMLHttpRequest
+   __RequestVerificationToken=<STAGING_CSRF>
+   Username=lab-system-a
+   Password=<SYNTHETIC_PASSWORD>
+   Fingerprint=
+   Base64=
+   ReturnUrl=
+   ```
+
+4. Vulnerable result: the login request returns HTTP 500 or the generic application error page; no authenticated session cookie is issued.
+5. Submit the same login flow for `lab-user-a`; the normal login flow should continue.
+6. Repeat with one incomplete relationship as a separate synthetic case. Record only status, response class, and whether a session was created.
+7. Check the staging application log using the correlation identifier from the synthetic request, then remove the synthetic identities.
 
 
 ### Impact

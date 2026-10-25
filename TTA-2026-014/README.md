@@ -35,13 +35,15 @@ The application accepts tickets signed with the shared machine-key material. Onc
 
 ### Steps to Reproduce
 
-1. Use a disposable staging copy and a synthetic administrator account.
-2. Obtain test-only key material through an approved host-level staging procedure.
-3. Create a synthetic authentication ticket using the staging application's documented ticket format.
-4. Submit it to the staging application and observe whether it is accepted.
-5. Rotate the key, expire existing sessions, and confirm that the old synthetic ticket is rejected.
+This is a post-compromise validation. Run it only in a disposable staging copy using a synthetic administrator identity and test-only key material.
 
-Do not use production key material, cookies, claims, or administrator accounts.
+1. Establish a controlled staging scenario where the test operator can retrieve the staging-only signing material. Do not collect key material from production.
+2. Record the staging application's key purpose and validation settings in the private test log. Do not place the key, cookie name, claims, or ticket bytes in the public report.
+3. Use an approved internal test harness to create a synthetic ticket for the lab administrator. Keep the ticket and generated cookie only in the isolated lab.
+4. Send the synthetic ticket to a harmless authenticated staging page and record whether it is accepted.
+5. Rotate the staging key and invalidate existing test sessions.
+6. Replay the same synthetic ticket. Secure result: the application rejects it and requires a fresh login.
+7. Record only boolean results for pre-rotation acceptance and post-rotation rejection. Do not publish the key, ticket-generation code, ticket bytes, claims, or cookie.
 
 
 ### Impact

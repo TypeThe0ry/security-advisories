@@ -35,15 +35,27 @@ The account class requiring MFA is mapped to an unavailable or unsupported workf
 
 ### Steps to Reproduce
 
-The integration is expected to make a decision about the account's required assurance level and then hand the login to a supported MFA workflow. The observed sequence stopped at the handoff:
+Run this only in staging with synthetic accounts and a test identity provider.
 
-1. The account is identified as requiring MFA.
-2. CIMS selects the adaptive-authentication path for that account class.
-3. The selected workflow is not available or is not mapped for the deployment.
-4. The provider returns an unsupported-workflow result.
-5. CIMS does not complete the login and does not create an authenticated session.
+1. Configure a staging SecureAuth/AdaptiveAuth integration with a synthetic staff account class requiring MFA. Map the canary identity to a missing or unsupported test workflow. Do not alter production policy.
+2. Create `lab-staff-a` with a valid synthetic password. Open `GET /cims/Account/Login` and collect a staging-only session cookie and anti-forgery value locally.
+3. Submit the normal login request:
 
-The failure is therefore a login availability defect. The application did not treat the error as a successful authentication result.
+   ```text
+   POST /cims/Account/Login
+   X-Requested-With: XMLHttpRequest
+   __RequestVerificationToken=<STAGING_CSRF>
+   Username=lab-staff-a
+   Password=<SYNTHETIC_PASSWORD>
+   Fingerprint=
+   Base64=
+   ReturnUrl=
+   ```
+
+4. Vulnerable sequence: the password stage advances to the adaptive-authentication handoff, the subsequent workflow page displays `Unsupported workflow detected.`, and no authenticated session cookie is issued.
+5. Submit the workflow continuation form with a fresh staging anti-forgery value and empty synthetic challenge fields. It should remain a controlled denial and must not issue a password-only session.
+6. Repeat with `lab-staff-control`, mapped to a supported workflow. That control should complete MFA and establish a session.
+7. Record status and session issuance only; do not retain real credentials, tokens, cookies, provider identifiers, or account mappings.
 
 
 ### Impact
