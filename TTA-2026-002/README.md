@@ -50,7 +50,7 @@ The following procedure uses synthetic values in an isolated RT 5.0.5 instance.
    - `attacker`: has `SeeCustomField` at a broad lab scope, but no `ShowTicket` or `SeeQueue` for the restricted queue;
    - `reader`: has both `SeeCustomField` and parent-object visibility;
    - `creator`: has neither permission.
-5. Confirm the parent-object boundary for `attacker`:
+5. Log in to the RT lab UI as each synthetic user and export separate lab-only sessions to `attacker.jar`, `reader.jar`, and `creator.jar`. Confirm the parent-object boundary for `attacker`:
 
    ```bash
    curl -sS -b attacker.jar -o /dev/null -w '%{http_code}\n' \
@@ -60,7 +60,7 @@ The following procedure uses synthetic values in an isolated RT 5.0.5 instance.
    # Expected control: 403 for both requests
    ```
 
-6. Request the Binary custom-field value:
+6. Request the Binary custom-field value using the same lab session:
 
    ```bash
    curl -sS -b attacker.jar -D binary.headers \
@@ -77,7 +77,7 @@ The following procedure uses synthetic values in an isolated RT 5.0.5 instance.
      -o text.body
    ```
 
-9. Compare the controls:
+9. Compare the controls using their own lab sessions:
    - `reader` should receive 200 for both values;
    - `creator` should receive 403;
    - an anonymous request should redirect to the login page;

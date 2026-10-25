@@ -47,11 +47,11 @@ The following procedure uses two synthetic staff users in an isolated RT 5.0.5 i
 1. Deploy RT 5.0.5 in a disposable lab instance and set `RT_BASE` to the lab URL.
 2. Create synthetic users `owner` and `reader`. Give `reader` the broad `ShowSavedSearches` right, but no ownership, `AdminUsers`, or SuperUser rights over `owner`.
 3. As `owner`, create a private personal saved search with a unique marker such as `SYNTHETIC-SAVEDSEARCH-CANARY`. Record the synthetic Attribute ID.
-4. Confirm that the reader cannot manage or view the owner's private search through the normal search builder.
+4. Log in as `owner` and `reader` in the isolated lab; export their lab-only sessions separately to `owner.jar` and `reader.jar`. Confirm that the owner's private search is absent from the normal search builder when viewed as `reader`.
 5. Load the search through the chart endpoint using the parsed container reference:
 
    ```bash
-   curl -sS -b reader.jar \
+   curl -sS -b reader.jar -w '\nHTTP %{http_code}\n' \
      "$RT_BASE/Search/Chart.html?SavedSearchLoad=RT::User-<OWNER_ID>-SavedSearch-<ATTRIBUTE_ID>&SavedSearchLoadSubmit=1" \
      -o chart.html
    ```
@@ -59,7 +59,7 @@ The following procedure uses two synthetic staff users in an isolated RT 5.0.5 i
 6. Search the response for `SYNTHETIC-SAVEDSEARCH-CANARY`, the private description, or the synthetic query text.
 7. Vulnerable result: the reader receives private search metadata or chart data despite not owning the search.
 8. Compare with the normal search builder and a `reader-no-right` account that lacks `ShowSavedSearches`; both should deny or omit the private values.
-9. Remove the synthetic search after verification and retain only response status, a canary marker, and the test account class.
+9. Confirm `owner.jar` can still load the private search. Remove the synthetic search after verification and retain only response status, a canary marker, and the test account class.
 
 
 ### Impact
