@@ -8,7 +8,7 @@ Missing ownership enforcement in the SavedSearch widget discloses another user's
 
 ### Summary
 
-The `html/Widgets/SavedSearch` component in Request Tracker 5.0.5 parses a saved-search reference into a container object and an Attribute identifier, but discards the parsed container object and loads the Attribute directly by identifier. Its remaining display check maps SavedSearch visibility to the broad system-level `ShowSavedSearches` right rather than enforcing ownership of a personal saved search.
+The `share/html/Widgets/SavedSearch` component in Request Tracker 5.0.5 parses a saved-search reference into a container object and an Attribute identifier, but discards the parsed container object and loads the Attribute directly by identifier. Its remaining display check maps SavedSearch visibility to the broad system-level `ShowSavedSearches` right rather than enforcing ownership of a personal saved search.
 
 As a result, a non-SuperUser staff account with `ShowSavedSearches` can retrieve another user's private saved-search description, query, format, and chart values.
 
@@ -31,7 +31,7 @@ Incorrect Authorization / IDOR (CWE-863; related to CWE-639).
 
 ### Affected Code
 
-File: `html/Widgets/SavedSearch`
+File: `share/html/Widgets/SavedSearch`
 
 Demonstrated entry point: `/Search/Chart.html` using the saved-search load parameter.
 

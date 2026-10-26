@@ -176,7 +176,7 @@ Published on 2026-10-24. Product owner, vendor, version, and build are not yet c
 
 The original authorized test used a synthetic canary account. The no-OTP sequence returned a successful reset result, and the new synthetic password was accepted by the normal login flow. An invalid recovery reference was rejected. No real administrator account, production password, OTP value, cookie, or directory credential was used.
 
-The public report intentionally leaves out the live hostname, real account values, recovery references, anti-forgery values, cookies, raw response bodies, and executable request script. Those values are not needed to understand the missing server-side state check and should be exchanged only through UWCSEA's secure evidence channel.
+The public report intentionally omits non-public request targets, real account values, recovery references, anti-forgery values, cookies, raw response bodies, and executable request scripts. Those details are not needed to understand the missing server-side state check and should be exchanged only through UWCSEA's secure evidence channel.
 
 ## Preconditions
 
@@ -228,7 +228,7 @@ The last two rows are remediation acceptance cases. They define the security pro
 
 ## Evidence scope
 
-The issue was reproduced in one authorized deployment using controlled identities. The report omits deployment identifiers, account values, recovery values, session material, directory details, and original requests.
+The issue was reproduced in one authorized deployment using controlled identities. The report omits non-public deployment identifiers, account values, recovery values, session material, directory details, and original requests.
 
 ## Timeline
 

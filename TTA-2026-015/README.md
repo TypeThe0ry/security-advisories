@@ -97,7 +97,7 @@ An unauthenticated caller can overwrite policy-holder personal data, including c
 
 ## Status
 
-Published as TTA-2026-015. No CVE has been assigned. This is distinct from TTA-2026-005: TTA-2026-005 concerns SQL query manipulation in the policy-holder edit lookup, while this report concerns the update handler's missing authentication and authorization checks.
+Published as TTA-2026-015. CVE eligibility remains under review, and no CVE has been assigned. The upstream issue remains open, and no fixed version is known. This is distinct from TTA-2026-005: TTA-2026-005 concerns SQL query manipulation in the policy-holder edit lookup, while this report concerns the update handler's missing authentication and authorization checks.
 
 ## Recommended remediation
 
@@ -112,6 +112,11 @@ Published as TTA-2026-015. No CVE has been assigned. This is distinct from TTA-2
 
 - [Original upstream report](https://github.com/dhikshitha29/Insurance-Management-System/issues/6)
 - [Affected handler at the reported commit](https://github.com/dhikshitha29/Insurance-Management-System/blob/125362cc21dca20d74091a4913a5096bb58dd837/Insurance_Management_System/Agent/includes/UpdatePolicyHolder-inc.php)
+
+## Timeline
+
+- 2026-10-07: Public upstream issue opened with reproduction details.
+- 2026-10-24: This repository advisory was published as TTA-2026-015.
 
 ## Evidence boundary
 

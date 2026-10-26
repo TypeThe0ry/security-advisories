@@ -37,7 +37,7 @@ This policy is prospective. Advisories that were already public before 2026-10-2
 
 ## Publication safeguards
 
-Reports contain only the technical information needed to understand, reproduce, and remediate the vulnerability. Reproduction steps use synthetic laboratory evidence. Customer hostnames, IP addresses, credentials, session values, real user information, ticket contents, and production data are not published in this repository.
+Reports contain only the technical information needed to understand, reproduce, and remediate the vulnerability. Reproduction steps use synthetic laboratory evidence. Non-public hostnames, internal IP addresses, credentials, session values, real user information, ticket contents, and production data are not published in this repository. A report may identify a public application URL when it is necessary to establish product ownership or the affected deployment.
 
 ## Advisories
 

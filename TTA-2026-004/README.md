@@ -1,6 +1,6 @@
 # TTA-2026-004: Request Tracker 5.0.5 RT::Attribute authorization defaults to allow for unmapped attribute types
 
-**Severity: High** — Suggested CVSS 3.1: 8.3 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L`)
+**Severity: High** — Suggested CVSS 3.1: 7.6 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L`)
 
 ### Title
 
@@ -39,7 +39,7 @@ Incorrect Authorization / Fail-Open Access Control (CWE-863, CWE-862, CWE-639).
 
 ### Affected Code
 
-Files: `lib/RT/Attribute.pm`, `/Prefs/Search.html`, and `share/html/Widgets/SavedSearch`.
+Files: `lib/RT/Attribute.pm`, `share/html/Prefs/Search.html`, and `share/html/Widgets/SavedSearch`.
 
 Affected operations include Attribute read, update, and delete paths that accept a numeric Attribute identifier.
 
@@ -125,7 +125,7 @@ The write and delete effects require access to the affected staff-facing page in
 
 ### CVSS
 
-`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L` — 8.3 High.
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L` — 7.6 High.
 
 ## Status
 
