@@ -161,7 +161,7 @@ An attacker who knows a valid username can take over the corresponding CIMS acco
 
 ## Status
 
-Published on 2026-10-24. Product owner, vendor, version, and build are not yet confirmed. CVE eligibility is pending product attribution.
+Published on 2026-10-24. In a later email supplied to the researcher (email date not provided; recorded on 2026-11-03), the operator stated that the CIMS password-recovery bug had been fixed. No change reference, fix version, deployment date, or independent regression result was supplied, so remediation is owner-reported and technically unverified. Vendor, version, and build remain unidentified; CVE eligibility remains subject to product attribution.
 
 ## Validation controls
 
@@ -234,3 +234,4 @@ The issue was reproduced in one authorized deployment using controlled identitie
 
 - 2026-10-22: Findings consolidated from the assessment record.
 - 2026-10-24: Public TTA report published.
+- 2026-11-03: Recorded the operator's email stating that the CIMS password-recovery bug was fixed; the email date and technical validation evidence were not provided.

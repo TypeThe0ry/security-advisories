@@ -240,6 +240,8 @@ Alternative if the directory is scored as a separate security authority from the
 
 Published as TTA-2026-018 on 2026-10-28, extending TTA-2026-009. The organization operating the assessed deployment was notified out of band. The password value obtained during testing is deliberately excluded from this report, and the asset owner was instructed to reset the affected directory account and to audit directory password-reset and privileged-logon events.
 
+The operator later stated that the CIMS password-recovery bug had been fixed (email date not provided; recorded on 2026-11-03). This is a report about the recovery-flow defect shared with TTA-2026-009, not confirmation that directory credential rotation, session invalidation, or log review was completed. No independent fix validation or change reference was supplied.
+
 ## Prerequisites
 
 - The target account name is known or can be enumerated through the recovery endpoint's differential responses.
@@ -266,12 +268,12 @@ Published as TTA-2026-018 on 2026-10-28, extending TTA-2026-009. The organizatio
 
 | Case | Expected result |
 | --- | --- |
-| `ForgotPassword` then `ResetPassword` with no OTP step | Must be rejected after fix; currently `ResetPasswordSuccess` |
+| `ForgotPassword` then `ResetPassword` with no OTP step | Must be rejected after fix; `ResetPasswordSuccess` was observed during the original assessment |
 | Zeroed or expired reference | HTTP 500 before and after |
 | `ForgotPassword` for an account that does not exist | Must be indistinguishable from an existing account after fix |
 | Reset a privileged account | Must not be possible through self-service after fix |
 | Login with the newly set password | Must require the second factor after fix |
-| Directory logon with the newly set password from an unrelated host | Must fail after fix; currently succeeds |
+| Directory logon with the newly set password from an unrelated host | Must fail after fix; it succeeded during the original assessment |
 
 ## Evidence boundary
 
@@ -282,3 +284,4 @@ The reset responses, the authentication results and the group membership listing
 - 2026-10-09: Recovery flow walked end to end; reset confirmed to succeed without completing the OTP step.
 - 2026-10-11: Directory password write confirmed by cross-system authentication. The reset replaced a production password that cannot be recovered; the password value was excluded from all reports, and the asset owner was instructed to reset the account and audit directory logs.
 - 2026-10-28: Published as TTA-2026-018.
+- 2026-11-03: Recorded the operator's statement that the CIMS password-recovery bug was fixed; independent validation and related identity-response evidence were not supplied.
