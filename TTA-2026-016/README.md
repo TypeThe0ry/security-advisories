@@ -455,7 +455,7 @@ The score models a remote attacker with no prior privilege who must induce one a
 
 ## Status
 
-**Vendor fix confirmed; covered by CVE-2026-108365.** TTA-2026-016 was published on 2026-10-28 and the permission-removal issue was reported to Best Practical in an encrypted email on 2026-10-29. On 2026-11-09, Best Practical confirmed that the issue is fixed in RT 5.0.11 and 6.0.4 and asked that any corresponding VulDB submission be marked as already addressed.
+**Already addressed; vendor fix confirmed and covered by CVE-2026-108365.** TTA-2026-016 was published on 2026-10-28 and the permission-removal issue was reported to Best Practical in an encrypted email on 2026-10-29. On 2026-11-09, Best Practical confirmed that the issue is fixed in RT 5.0.11 and 6.0.4 and asked that any corresponding VulDB submission be marked as already addressed.
 
 The [RT 6.0.4 release notes](https://docs.bestpractical.com/release-notes/rt/6.0.4) identify CVE-2026-108365 for the Rights Inspector CSRF issue. The [upstream fix](https://github.com/bestpractical/rt/commit/75d25fd6da73da4b9b5bdee14cca57e7f5691254) adds `/Helpers/RightsInspector/Revoke` to `%IS_BLACKLISTED_COMPONENT`, matching the endpoint and root cause described here. This report should therefore reference that CVE rather than seek another identifier for the same issue. The CVE.org record was still RESERVED when checked on 2026-11-10.
 
@@ -512,3 +512,4 @@ The request, response, and ACL state change above were reproduced on an isolated
 - 2026-10-29: The [upstream fix commit](https://github.com/bestpractical/rt/commit/75d25fd6da73da4b9b5bdee14cca57e7f5691254) adds the Rights Inspector revoke helper to the CSRF blacklist.
 - 2026-11-09: Best Practical confirmed the issue is fixed in RT 5.0.11 and 6.0.4 and asked that any corresponding VulDB submission be marked as already addressed.
 - 2026-11-10: This report was updated to reference the vendor-announced CVE-2026-108365, record the fixed versions, and correct the vendor-response history. The CVE.org record was still RESERVED at the time of this check. No new CVE request or VulDB status change was made as part of this documentation update.
+- 2026-11-10: Sent an encrypted reply confirming existing-CVE coverage, supplying the researcher public key, and requesting consideration of independent co-discovery credit. No later vendor reply or credit confirmation has been recorded. No corresponding TTA-2026-016 VulDB submission has been verified.

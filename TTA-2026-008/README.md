@@ -1,5 +1,7 @@
 # TTA-2026-008: Request Tracker 5.0.5 DBI ExternalAuth exception-path authentication bypass candidate
 
+**Status update (2026-11-10):** **Candidate remains unconfirmed on current releases; not marked addressed.** The RT 5.0.11 upstream DBI baseline passed 31/31 assertions, but the reported malformed-password/session-persistence case was not rerun. No current-release exploit or fix is claimed.
+
 **Severity: Medium** — Provisional CVSS 3.1: 4.8 (`AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N`)
 
 ### Title
@@ -81,9 +83,11 @@ This report does not claim that RT grants administrator or operating-system priv
 
 ## Status
 
-Public CVE candidate; vendor confirmation is pending. This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific vendor notice, fix confirmation, or CVE assignment had been recorded before publication. At the researcher's direction, this candidate was published after evidence review and data sanitization instead of entering a new private embargo; it is a documented exception to the repository's normal private-notice timeline.
+**Unconfirmed current-release candidate; not marked already addressed.** The historical RT 5.0.5 result below does not establish the behavior of RT 5.0.11 or 6.0.4. On 2026-11-10, an isolated RT 5.0.11 run of the upstream DBI ExternalAuth baseline passed 31/31 assertions. Those ordinary authentication tests do not establish what happens for the reported malformed-password exception and subsequent session reuse; that custom case was not executed. No current-release exploit, fixed version, or matching CVE is confirmed.
 
-The vendor still needs to confirm the supported status and exact version of the DBI ExternalAuth component, the affected release range, and whether this issue is distinct from an existing private fix or authentication advisory.
+This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific private notice had been recorded before publication. At the researcher's direction, it was published after evidence review and data sanitization instead of entering a new private embargo. A 2026-11-10 encrypted follow-up to Best Practical included this report link and explicitly retained the current-release uncertainty. No advisory-specific vendor response has been recorded.
+
+Further validation must establish the supported DBI configuration and exact dependency behavior, then check anonymous session state after the malformed-record exception. A passing general baseline is neither proof of a fix nor proof of this candidate's exploitability.
 
 ## Prerequisites
 
@@ -116,4 +120,5 @@ The behavior was reproduced only in an isolated RT 5.0.5 laboratory instance usi
 ## Timeline
 
 - 2026-10-22: Candidate documented from isolated RT 5.0.5 testing.
-- 2026-10-24: Public TTA report published; vendor support status, duplicate status, affected range, fix status, and CVE eligibility remain unconfirmed.
+- 2026-10-24: Public TTA report published; vendor support status, duplicate status, affected range, fix status, and CVE eligibility were unconfirmed at publication.
+- 2026-11-10: Isolated RT 5.0.11 upstream DBI baseline passed 31/31 assertions. The custom malformed-password/session-persistence case was not run. Sent the report link and these limitations to Best Practical in an encrypted follow-up; current-release exploitability, fix status, CVE mapping, and vendor confirmation remain unresolved.

@@ -1,5 +1,7 @@
 # TTA-2026-007: Request Tracker 5.0.5 stored XSS candidate through a calendar attachment filename
 
+**Status update (2026-11-10):** **Reported filename sink addressed in RT 5.0.11 and 6.0.4, verified by source review.** The specific CVE mapping remains unconfirmed. The historical test demonstrated unsafe HTML output, not separately preserved browser-side script execution.
+
 **Severity: Medium** — Provisional CVSS 3.1: 6.1 (`AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N`), conditional on supported unauthenticated mail ingress
 
 ### Title
@@ -98,9 +100,11 @@ Successful exploitation could allow actions available to the victim's browser se
 
 ## Status
 
-Public CVE candidate; vendor confirmation is pending. This report was published on 2026-10-24 after isolated laboratory reproduction. No advisory-specific vendor notice, fix confirmation, or CVE assignment had been recorded before publication. At the researcher's direction, this candidate was published after evidence review and data sanitization instead of entering a new private embargo; it is a documented exception to the repository's normal private-notice timeline.
+**Reported sink addressed; CVE mapping unconfirmed.** The [upstream filename-escaping fix](https://github.com/bestpractical/rt/commit/05d21b5c0c22491e7c34bc570331df150c7c28f8) HTML-escapes the exact calendar attachment filename sink described here. That escaping is present in both the [RT 5.0.11 source](https://github.com/bestpractical/rt/blob/rt-5.0.11/share/html/Elements/ShowTransactionAttachments) and [RT 6.0.4 source](https://github.com/bestpractical/rt/blob/rt-6.0.4/share/html/Elements/ShowTransactionAttachments). This is a source-level fix confirmation, not a completed browser regression test or proof of the full original XSS exploit chain.
 
-The assigning CNA or vendor still needs to determine whether this is a distinct vulnerability, an incomplete fix, or already within the scope of CVE-2025-9158 or CVE-2026-44229.
+The report was published on 2026-10-24 after isolated RT 5.0.5 testing, without a recorded advisory-specific private notice before publication. At the researcher's direction, it was published after evidence review and data sanitization instead of entering a new private embargo. An encrypted follow-up sent to Best Practical on 2026-11-10 included this report link and the bounded fix conclusion. No advisory-specific vendor confirmation or independent-discovery credit has been recorded.
+
+CVE-2026-108342 is a possible umbrella mapping, but the public release notes do not identify this filename sink specifically. This report does not claim that mapping is confirmed or that a new CVE is required.
 
 ## Prerequisites
 
@@ -112,13 +116,14 @@ If the attachment can be introduced only through a customer-specific, incorrectl
 
 ## Relationship to existing CVEs
 
-- [CVE-2025-9158](https://www.cve.org/CVERecord?id=CVE-2025-9158) covers stored XSS in calendar invitation parsing for RT 5.0.4 through 5.0.8 and RT 6.0.0 through 6.0.1. The public fix context concerns displayed invitation data, while this candidate concerns the MIME attachment filename sink.
-- [CVE-2026-44229](https://www.cve.org/CVERecord?id=CVE-2026-44229) covers uploaded content served inline before RT 5.0.10 and 6.0.3.
+- [CVE-2026-108342](https://www.cve.org/CVERecord?id=CVE-2026-108342) covers multiple HTML-escaping issues in the [RT 5.0.11](https://docs.bestpractical.com/release-notes/rt/5.0.11) and [RT 6.0.4](https://docs.bestpractical.com/release-notes/rt/6.0.4) release notes, including ticket history. The [exact calendar filename fix](https://github.com/bestpractical/rt/commit/05d21b5c0c22491e7c34bc570331df150c7c28f8) is verified, but its specific association with that aggregate CVE remains unconfirmed.
+- [CVE-2025-9158](https://www.cve.org/CVERecord?id=CVE-2025-9158) concerns calendar invitation parsing; [CVE-2026-44229](https://www.cve.org/CVERecord?id=CVE-2026-44229) concerns uploaded content served inline. Neither relationship, by itself, resolves the identifier for this filename sink.
 
-The different source sink is a reason to request scope review, not proof that a new CVE is required. Best Practical or the assigning CNA should decide whether this report is distinct, an incomplete fix, or already covered.
+The finding is not presented as an unfixed current-release sink or as an established new-CVE claim.
 
 ## Recommended remediation
 
+- Upgrade to RT **5.0.11** or **6.0.4**, or a later supported release containing the filename-escaping fix.
 - HTML-escape the filename before rendering it in every attachment-display branch.
 - Use a shared text-rendering helper instead of assembling HTML with untrusted attachment metadata.
 - Add regression tests with markup-bearing MIME filenames for calendar and non-calendar attachments.
@@ -131,4 +136,6 @@ The unsafe sink was dynamically reproduced only in an isolated RT 5.0.5 laborato
 ## Timeline
 
 - 2026-10-22: Candidate documented from isolated RT 5.0.5 testing.
-- 2026-10-24: Public TTA report published; vendor scope, duplicate status, affected range, fix status, and CVE eligibility remain unconfirmed.
+- 2026-10-24: Public TTA report published; vendor scope, duplicate status, affected range, fix status, and CVE eligibility were unconfirmed at publication.
+- 2026-10-29: RT 5.0.11 and 6.0.4 released with the calendar filename escaping change.
+- 2026-11-10: Verified the exact sink is escaped in both release tags and updated the status. Sent the report link and bounded conclusion to Best Practical in an encrypted follow-up. Specific CVE mapping and vendor credit remain unconfirmed.

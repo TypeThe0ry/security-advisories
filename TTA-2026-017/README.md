@@ -1,6 +1,8 @@
-# TTA-2026-017: Request Tracker 5.0.10 still affected by the `RT::Attribute` fail-open authorization default (follow-up to TTA-2026-004), and 6.0.3 remains fail-open by design
+# TTA-2026-017: Request Tracker `RT::Attribute` version-scope follow-up to TTA-2026-004
 
-**Severity: High** — Suggested CVSS 3.1: 7.6 (`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L`) for 5.0.5 and 5.0.10
+**Status update (2026-11-10):** **Same report family as TTA-2026-004, not a separate defect.** Saved-search handling overlaps the RT 5.0.11 fix associated with CVE-2026-108282; the separate `/Prefs/Search.html` read path remains unverified on 5.0.11. Historical 5.0.10/6.0.3 observations below are source review, not runtime results.
+
+**Severity: High** — Suggested CVSS 3.1: 7.6 (`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L`) for the historical 5.0.5 reproduction; applicability to 5.0.10 is source-based
 
 ### Title
 
@@ -12,9 +14,9 @@ TTA-2026-004 described a fail-open in `RT::Attribute`: the class decides whether
 
 This report is a continuation of that advisory, not a new defect, and it exists to answer two questions the original report could not: is the problem fixed in the later 5.x release, and what is the state in the 6.x series?
 
-The answers are:
+The historical source-review findings for those releases are:
 
-- **5.0.10 is still vulnerable.** `lib/RT/Attribute.pm` in 5.0.10 is byte-identical to 5.0.5 in every relevant respect — same `$ACL_MAP` with `SavedSearch` as the only entry, same `$PERSONAL_ACL_MAP`, same three-way `allow`/`deny`/check branching in `Create`, `Delete`, `_Value` and `_Set`. The consumer that makes it reachable, `share/html/Widgets/SavedSearch`, is also unchanged: it still parses a container object out of `SavedSearchLoad` and then discards it, loading the `RT::Attribute` by bare numeric id.
+- **5.0.10 contains the same relevant source paths.** `lib/RT/Attribute.pm` in 5.0.10 is byte-identical to 5.0.5 in every relevant respect — same `$ACL_MAP` with `SavedSearch` as the only entry, same `$PERSONAL_ACL_MAP`, same three-way `allow`/`deny`/check branching in `Create`, `Delete`, `_Value` and `_Set`. The consumer that makes it reachable, `share/html/Widgets/SavedSearch`, is also unchanged: it still parses a container object out of `SavedSearchLoad` and then discards it, loading the `RT::Attribute` by bare numeric id.
 - **6.0.3 still fails open at the `RT::Attribute` level, but the demonstrated consumer was refactored.** Both ACL maps are now literally empty (`our $ACL_MAP = {};`), so `LookupObjectRight` still answers `allow` for every name — the default has not been corrected, the map has simply been emptied. What changed is the caller: `Widgets/SavedSearch` now goes through `RT::SavedSearch`, whose `_CurrentUserCan` contains an explicit container check that refuses to load an attribute belonging to another user. The load path that TTA-2026-004 demonstrated is therefore closed in 6.0.3 by the wrapper, while the unsafe default that made it exploitable is still in place for any other caller.
 
 No dynamic test was performed against 5.0.10 or 6.0.3. The claims for those versions are source-level and are stated as such.
@@ -23,7 +25,8 @@ No dynamic test was performed against 5.0.10 or 6.0.3. The claims for those vers
 
 - Vendor: Best Practical Solutions, LLC
 - Product: Request Tracker
-- Confirmed affected version: 5.0.5 (dynamic reproduction, TTA-2026-004) and 5.0.10 (source-identical to 5.0.5 in all relevant code)
+- Dynamically confirmed version: 5.0.5 (TTA-2026-004)
+- Source-reviewed version: 5.0.10 (relevant code matches 5.0.5; not dynamically tested)
 - Fail-open default still present: 6.0.3, with the demonstrated consumer path hardened
 - Core components: `lib/RT/Attribute.pm`, `share/html/Widgets/SavedSearch`, `share/html/Search/Chart.html`, `share/html/Prefs/Search.html`
 - Endpoint: `GET /Search/Chart.html?SavedSearchLoad=RT::<CLASS>-<OBJECT_ID>-SavedSearch-<ATTRIBUTE_ID>` with `SavedSearchSave=1` or `SavedSearchDelete=1`
@@ -172,7 +175,7 @@ Both lines were written *during* a successful attack. The warning proves the cod
 | Version | `$ACL_MAP` contents | `LookupObjectRight` unknown name | `Widgets/SavedSearch` container check | Status |
 | --- | --- | --- | --- | --- |
 | 5.0.5 | `SavedSearch` only | `allow` | absent (container parsed and discarded) | exploitable (TTA-2026-004) |
-| 5.0.10 | `SavedSearch` only, byte-identical to 5.0.5 | `allow` | absent, byte-identical consumer | exploitable by the same request |
+| 5.0.10 | `SavedSearch` only, byte-identical to 5.0.5 | `allow` | absent, byte-identical consumer | same source path; not dynamically tested |
 | 6.0.3 | `{}` (empty) | `allow` | present in `RT::SavedSearch::_CurrentUserCan` | default unchanged; demonstrated path closed |
 
 The 6.0.3 wrapper performs the check the 5.x consumer omitted:
@@ -352,13 +355,17 @@ The read side is the same primitive in the other direction: `/Prefs/Search.html?
 
 ### CVSS
 
-`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L` — 7.6 High, for 5.0.5 and 5.0.10.
+`CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L` — 7.6 High for the historical 5.0.5 reproduction. Applying this assessment to 5.0.10 relies on source comparison, not a dynamic test. It is not a severity assignment to an established vulnerability in 5.0.11 or 6.0.4.
 
 The score models an authenticated privileged user acting over the network with no user interaction, achieving high integrity impact on other users' stored objects, limited disclosure, and limited availability impact.
 
 ## Status
 
-Published as TTA-2026-017 on 2026-10-28 as a follow-up to TTA-2026-004. The original advisory was privately reported to `security@bestpractical.com` on 2026-10-23 and published on 2026-10-24 with no vendor response; this follow-up corrects the version scope that the original could not determine. CVE eligibility is pending; no CVE has been assigned.
+**Follow-up to [TTA-2026-004](../TTA-2026-004/); partial overlap with the saved-search fix, remaining read path unverified.** This report was published on 2026-10-28 to record cross-version source review, not a new defect or a separate reproduction on newer releases.
+
+The original TTA-2026-004 was privately reported on 2026-10-23 and published on 2026-10-24. Best Practical replied on 2026-10-27 that the issue had already been reported and the next RT 5 release would address it. The earlier implication that no reply existed by publication of this follow-up is corrected here.
+
+The [RT 5.0.11 release notes](https://docs.bestpractical.com/release-notes/rt/5.0.11) and [saved-search fix](https://github.com/bestpractical/rt/commit/82093b255f5a965cee669021dae5feba5107f76b) establish overlap with CVE-2026-108282. The separate `/Prefs/Search.html` read path has not been dynamically verified on 5.0.11, so this report is not marked fully addressed or claimed as a distinct remaining vulnerability. The 2026-11-10 encrypted follow-up to Best Practical retained these limits. No separate CVE is requested by this update, and no VulDB submission was changed.
 
 ## Prerequisites
 
@@ -368,16 +375,19 @@ Published as TTA-2026-017 on 2026-10-28 as a follow-up to TTA-2026-004. The orig
 
 ## Relationship to existing CVEs
 
-- This report is a **scope correction for TTA-2026-004**, not a separate vulnerability. TTA-2026-004 was published with 5.0.5 as the only confirmed version; the follow-up establishes that 5.0.10 carries byte-identical code and is equally affected, and that 6.0.3 retains the fail-open default while the demonstrated consumer path was hardened.
-- No published CVE covers this defect. [CVE-2026-41074](https://www.cve.org/CVERecord?id=CVE-2026-41074) covers Referer-based CSRF, [CVE-2026-44231](https://www.cve.org/CVERecord?id=CVE-2026-44231) covers REST2 token exposure, [CVE-2026-41075](https://www.cve.org/CVERecord?id=CVE-2026-41075) covers REST2 query construction, and [CVE-2026-44229](https://www.cve.org/CVERecord?id=CVE-2026-44229) covers inline-served uploads. None of them touches `RT::Attribute`.
+- This is a **scope follow-up to [TTA-2026-004](../TTA-2026-004/)**, not a separate vulnerability. Only RT 5.0.5 was dynamically tested. The 5.0.10 and 6.0.3 findings are source comparisons; the demonstrated consumer is already hardened in 6.0.3.
+- [CVE-2026-108282](https://www.cve.org/CVERecord?id=CVE-2026-108282) is the relevant existing saved-search authorization CVE in the [RT 5.0.11 release notes](https://docs.bestpractical.com/release-notes/rt/5.0.11). The [matching fix](https://github.com/bestpractical/rt/commit/82093b255f5a965cee669021dae5feba5107f76b) binds a search identifier to its container and rejects non-search attributes, overlapping the consumer described here.
+- Full coverage of the separate `/Prefs/Search.html` read path is not established. An unchanged `LookupObjectRight` fallback, without a verified reachable unauthorized operation, is not sufficient evidence for a new CVE or an incomplete-fix claim.
 
-Whether the 5.0.10 recurrence should be filed as a new CVE, as an incomplete fix, or as a correction to TTA-2026-004's version range is for Best Practical or the assigning CNA to decide.
+The earlier statement that no published CVE covers the defect is superseded by this partial-overlap assessment. CVE-2026-108282 is not listed in the RT 6.0.4 notes; this report does not infer a 6.x CVE range from the 5.x announcement.
 
 ## Recommended remediation
 
+- Upgrade the RT 5 series to **5.0.11** or a later supported release for the saved-search authorization fixes. Independently validate the separate read path before treating the whole report as fixed or as a remaining vulnerability.
+- The following design recommendations are hardening guidance, not proof that the fixed releases still allow the historical operations.
 - Change the default in `LookupObjectRight` from `allow` to `deny` for unknown names and rights, and require plugins to register their attribute types and rights explicitly.
 - Add the container check at the load site rather than only at one wrapper: after `RT::Attribute->Load($id)`, compare `$self->ObjectType` and `$self->ObjectId` against the container parsed from the request, and refuse on mismatch.
-- Apply the 6.0.3 `RT::SavedSearch::_CurrentUserCan` pattern to 5.0.x as a backport, since it is the single change that closes the demonstrated path.
+- Use the complete upstream 5.0.11 authorization changes rather than assuming that backporting one wrapper check alone provides full coverage.
 - Populate `$ACL_MAP` for the attribute types shipped in core (`Dashboard`, `UserLogo`, `Subscription`, `DefaultDashboard`) so that the map is not the only thing standing between a plugin author and an open write primitive.
 - Treat the existing `SharedSetting.pm` warning as an error: a failed container load must abort the request, not log and continue.
 
@@ -399,4 +409,7 @@ The requests, responses, database states and log lines above were recorded on an
 ## Timeline
 
 - 2026-10-09: Read, update and delete of another user's `RT::Attribute` rows reproduced on an isolated RT 5.0.5 instance; system-level `DefaultDashboard` modified and restored; controls recorded. Published as TTA-2026-004 on 2026-10-24.
+- 2026-10-27 (vendor correspondence for TTA-2026-004): Best Practical stated that the issue had already been reported and the next RT 5 release would address it. This reply predates publication of TTA-2026-017 and corrects the previous response-history omission.
 - 2026-10-28: `lib/RT/Attribute.pm` and `share/html/Widgets/SavedSearch` compared across 5.0.5, 5.0.10 and 6.0.3; 5.0.10 found byte-identical to 5.0.5, 6.0.3 found fail-open with an emptied map and a hardened wrapper. Published as TTA-2026-017.
+- 2026-10-29: RT 5.0.11 released with the saved-search authorization fix associated with CVE-2026-108282.
+- 2026-11-10: Updated this follow-up to distinguish partial fix overlap from the unverified separate read path; sent that conclusion to Best Practical. No separate defect, new CVE request, or confirmed current-release exploit is asserted.

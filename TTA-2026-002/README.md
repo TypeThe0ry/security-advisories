@@ -1,5 +1,7 @@
 # TTA-2026-002: Request Tracker 5.0.5 CustomFieldValue download omits parent-object authorization
 
+**Status update (2026-11-10):** **Already addressed** under vendor-announced [CVE-2026-108274](https://www.cve.org/CVERecord?id=CVE-2026-108274); fixed in RT **5.0.11** and **6.0.4**. The original RT 5.0.5 reproduction is retained below as historical evidence.
+
 **Severity: Medium** — Suggested CVSS 3.1: 6.5 (`AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N`)
 
 ### Title
@@ -98,7 +100,13 @@ The condition is most relevant where `SeeCustomField` is granted at the system o
 
 ## Status
 
-Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.
+**Already addressed; covered by [CVE-2026-108274](https://www.cve.org/CVERecord?id=CVE-2026-108274).** The [RT 5.0.11 release notes](https://docs.bestpractical.com/release-notes/rt/5.0.11) and [RT 6.0.4 release notes](https://docs.bestpractical.com/release-notes/rt/6.0.4), together with the [matching upstream fix](https://github.com/bestpractical/rt/commit/9f8964c07442233053029f867594a27550be6c19), support this mapping. Fixed releases are RT **5.0.11** and **6.0.4**.
+
+This issue was privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. On 2026-10-27, Best Practical replied that the issue had already been reported and would be addressed in the next RT 5 release, and requested testing on the latest release and encrypted reports. The earlier absence of a response at publication time is historical, not the current status.
+
+A VulDB receipt dated 2026-10-24 records a CVE request. Its current processing status has not been verified, and this GitHub update does not change or withdraw that submission. This report now references the existing vendor-announced CVE rather than presenting the same finding as a new-CVE claim. Vendor or CNA credit for TypeThe0ry as an independent co-discoverer has not been confirmed.
+
+Only RT 5.0.5 was dynamically tested for this report. The fixed-version conclusion is based on vendor documentation and source changes, not a completed dynamic regression test of this finding on the fixed releases.
 
 ## Prerequisites
 
@@ -109,6 +117,7 @@ Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 202
 
 ## Recommended remediation
 
+- Upgrade to RT **5.0.11** or **6.0.4**, or a later supported release containing the fix. The following checks describe the authorization requirements, not additional unconfirmed defects in the fixed release.
 - Resolve the parent object from the `ObjectCustomFieldValue` record.
 - Require the corresponding object visibility permission before emitting either short or large content.
 - Reject values whose parent object cannot be loaded or whose object type is not explicitly supported.
@@ -118,3 +127,11 @@ Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 202
 ## Evidence boundary
 
 The vulnerability was dynamically reproduced only in an isolated RT 5.0.5 laboratory instance using synthetic accounts and data. No customer hostname, IP address, credential, cookie, ticket, attachment, or production value is included in this advisory.
+
+## Timeline
+
+- 2026-10-23: Privately reported to Best Practical.
+- 2026-10-24: Public TTA report published; VulDB acknowledged the CVE request.
+- 2026-10-27: Best Practical replied that the issue was already known and the next RT 5 release would address it.
+- 2026-10-29: Vendor release notes announced the fix under CVE-2026-108274.
+- 2026-11-10: Confirmed existing-CVE coverage in an encrypted follow-up to Best Practical; updated this report to already addressed. Independent-discovery credit remains unconfirmed. No VulDB status change was made by this documentation update.

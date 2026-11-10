@@ -1,5 +1,7 @@
 # TTA-2026-004: Request Tracker 5.0.5 RT::Attribute authorization defaults to allow for unmapped attribute types
 
+**Status update (2026-11-10):** **Partially addressed / scope review remains open.** The saved-search path overlaps the fix associated with CVE-2026-108282 in RT 5.0.11. The separate `/Prefs/Search.html` read path has not been verified on 5.0.11. [TTA-2026-017](../TTA-2026-017/) is a follow-up to this report, not a separate defect.
+
 **Severity: High** — Suggested CVSS 3.1: 7.6 (`AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:L`)
 
 ### Title
@@ -129,10 +131,18 @@ The write and delete effects require access to the affected staff-facing page in
 
 ## Status
 
-Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 2026-10-24. No vendor response or CVE assignment had been received at the time of publication.
+**Partial overlap with an existing fix; not marked fully addressed.** The [RT 5.0.11 release notes](https://docs.bestpractical.com/release-notes/rt/5.0.11) associate saved-search authorization flaws with [CVE-2026-108282](https://www.cve.org/CVERecord?id=CVE-2026-108282). The [saved-search fix](https://github.com/bestpractical/rt/commit/82093b255f5a965cee669021dae5feba5107f76b) adds container/attribute binding and rejects non-search attributes in saved-search handling. This overlaps the update/delete consumer described here.
+
+The separate `/Prefs/Search.html?name=RT::Attribute-<id>` read path has not been dynamically verified on RT 5.0.11. The continuing presence of a fail-open default alone does not establish a reachable vulnerability in a current release. Consequently, neither full coverage by CVE-2026-108282 nor a distinct remaining vulnerability is asserted for the entire report.
+
+Privately reported on 2026-10-23 and published on 2026-10-24. Best Practical replied on 2026-10-27 that the issue had already been reported and would be addressed in the next RT 5 release. A VulDB receipt dated 2026-10-24 records a CVE request; the current processing status is unverified, and this documentation update does not change or withdraw it.
+
+[TTA-2026-017](../TTA-2026-017/) records cross-version source review of this same root cause. It is not a separate defect or an independent new-CVE claim. The 2026-11-10 encrypted follow-up to Best Practical retained these scope limits; no later vendor confirmation is recorded.
 
 ## Recommended remediation
 
+- Upgrade to RT 5.0.11 or a later supported release for the saved-search authorization fixes. Do not treat this recommendation as proof that the separate read path is fixed or exploitable; that requires a focused regression test.
+- The following are defensive authorization requirements and follow-up checks, not assertions that every current-release path remains vulnerable.
 - Change the default for unknown Attribute names and operations from allow to deny.
 - Define an explicit permission mapping for every supported Attribute name.
 - Add a per-instance ownership/container authorization check below the name mapping.
@@ -143,3 +153,12 @@ Privately reported to Best Practical on 2026-10-23 and publicly disclosed on 202
 ## Evidence boundary
 
 All effects were dynamically reproduced only in an isolated RT 5.0.5 laboratory instance using synthetic accounts, Attributes, and restorable canaries. No customer hostname, IP address, credential, cookie, real user content, ticket, or production value is included in this advisory.
+
+## Timeline
+
+- 2026-10-23: Privately reported to Best Practical.
+- 2026-10-24: Public report published; VulDB acknowledged the CVE request.
+- 2026-10-27: Best Practical replied that the issue was already known and the next RT 5 release would address it.
+- 2026-10-28: TTA-2026-017 published as a cross-version source-review follow-up, not a new defect.
+- 2026-10-29: RT 5.0.11 released with saved-search authorization fixes associated with CVE-2026-108282.
+- 2026-11-10: Recorded overlap with the upstream fix and the unverified remaining read path; sent these bounded conclusions to Best Practical. No new CVE request or VulDB change was made by this documentation update.
