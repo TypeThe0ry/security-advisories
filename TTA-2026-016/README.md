@@ -1,5 +1,7 @@
 # TTA-2026-016: Request Tracker 5.0.5 through 6.0.3 cross-site request forgery in `/Helpers/RightsInspector/Revoke` revokes arbitrary ACL entries
 
+**Update (2026-11-10):** This report is covered by the vendor-announced [CVE-2026-108365](https://www.cve.org/CVERecord?id=CVE-2026-108365). Best Practical confirms fixes in RT **5.0.11** and **6.0.4**. The mapping is supported by the [RT 6.0.4 release notes](https://docs.bestpractical.com/release-notes/rt/6.0.4) and the [upstream Rights Inspector fix](https://github.com/bestpractical/rt/commit/75d25fd6da73da4b9b5bdee14cca57e7f5691254). The CVE.org record was still RESERVED when checked on 2026-11-10; that record-publication status does not mean the vendor fix is pending.
+
 **Severity: High** — Suggested CVSS 3.1: 7.1 (`CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:L`)
 
 ### Title
@@ -20,7 +22,7 @@ The practical shape of the attack is a one-line HTML payload served from anywher
 
 The victim loads the page while logged in, sees nothing, and one authorization row is gone. Repeating the tag for a list of ids removes many rows in a single page load.
 
-The defect was reproduced dynamically on an isolated RT 5.0.5 instance, with the state change confirmed directly in the PostgreSQL `ACL` table, and it was confirmed by source inspection in 5.0.10 and 6.0.3, where the helper source is byte-identical apart from the copyright year and the exemption logic is unchanged. The 6.0.3 release is the newest available at the time of writing, so this is not a fixed-in-latest issue.
+The defect was reproduced dynamically on an isolated RT 5.0.5 instance, with the state change confirmed directly in the PostgreSQL `ACL` table, and it was confirmed by source inspection in 5.0.10 and 6.0.3, where the helper source is byte-identical apart from the copyright year and the exemption logic is unchanged. Those observations describe the releases reviewed before the fix. Best Practical subsequently confirmed that RT 5.0.11 and 6.0.4 address this issue; the fixed releases have not been dynamically retested as part of this report.
 
 ### Affected Version
 
@@ -31,6 +33,8 @@ The defect was reproduced dynamically on an isolated RT 5.0.5 instance, with the
 - Core components: `share/html/Helpers/RightsInspector/Revoke`, `lib/RT/Interface/Web.pm`
 - Endpoint: `GET /Helpers/RightsInspector/Revoke?id=<ACE_ID>`
 - Default configuration: `$RestrictReferrer` defaults to `1`, so the CSRF check is enabled by default and this is not a hardening-dependent issue
+- Fixed versions confirmed by Best Practical: **5.0.11** and **6.0.4**
+- CVE cross-reference: **CVE-2026-108365**, as announced in the vendor's release notes
 
 RT 5.0.5 was dynamically tested. RT 5.0.10 and RT 6.0.3 were compared at the source level only and were not executed; the claim for those versions is limited to what the unchanged source shows.
 
@@ -451,7 +455,13 @@ The score models a remote attacker with no prior privilege who must induce one a
 
 ## Status
 
-Published as TTA-2026-016 on 2026-10-28. Not reported to the vendor before publication; this repository's prior RT advisories (TTA-2026-001 through TTA-2026-004) received no vendor response at `security@bestpractical.com` after the 2026-10-23 notice, and this report follows the same publication path. CVE eligibility is pending; no CVE has been assigned.
+**Vendor fix confirmed; covered by CVE-2026-108365.** TTA-2026-016 was published on 2026-10-28 and the permission-removal issue was reported to Best Practical in an encrypted email on 2026-10-29. On 2026-11-09, Best Practical confirmed that the issue is fixed in RT 5.0.11 and 6.0.4 and asked that any corresponding VulDB submission be marked as already addressed.
+
+The [RT 6.0.4 release notes](https://docs.bestpractical.com/release-notes/rt/6.0.4) identify CVE-2026-108365 for the Rights Inspector CSRF issue. The [upstream fix](https://github.com/bestpractical/rt/commit/75d25fd6da73da4b9b5bdee14cca57e7f5691254) adds `/Helpers/RightsInspector/Revoke` to `%IS_BLACKLISTED_COMPONENT`, matching the endpoint and root cause described here. This report should therefore reference that CVE rather than seek another identifier for the same issue. The CVE.org record was still RESERVED when checked on 2026-11-10.
+
+**Timeline correction:** The earlier version of this report incorrectly stated that Best Practical had not responded to TTA-2026-001 through TTA-2026-004 by the publication of this follow-up. Best Practical sent separate replies to all four reports on 2026-10-27, stating that the issues had already been reported and would be addressed in the next RT 5 release. Those replies concern the earlier reports, not a private notice of TTA-2026-016 before its publication.
+
+The vendor's public acknowledgement credits CERT Polska. This cross-reference does not claim that Best Practical or the CNA has credited TypeThe0ry as an independent discoverer.
 
 ## Prerequisites
 
@@ -464,13 +474,13 @@ No RT credential, session value, or administrator action beyond loading a page i
 
 ## Relationship to existing CVEs
 
-- [CVE-2026-41074](https://www.cve.org/CVERecord?id=CVE-2026-41074) (GHSA-265j-qx4w-256j) concerns RT's Referer-based CSRF protection and is published for RT 6.0.0 through 6.0.3 only. Its fix does not add this helper to `%IS_BLACKLISTED_COMPONENT`, and it does not cover the 5.x series. The component and the exemption logic in 6.0.3 remain in the state described above.
-- [CVE-2026-44231](https://www.cve.org/CVERecord?id=CVE-2026-44231), [CVE-2026-41075](https://www.cve.org/CVERecord?id=CVE-2026-41075), [CVE-2026-44230](https://www.cve.org/CVERecord?id=CVE-2026-44230) and [CVE-2026-44229](https://www.cve.org/CVERecord?id=CVE-2026-44229) concern REST2 token exposure, REST2 query construction, reflected XSS, and inline-served uploads respectively, and are unrelated to this path.
-
-Whether this is a distinct CVE, an incomplete fix for CVE-2026-41074, or a version-range correction is for Best Practical or the assigning CNA to decide. The report is submitted with that question open.
+- **[CVE-2026-108365](https://www.cve.org/CVERecord?id=CVE-2026-108365)** is the vendor-announced identifier for this Rights Inspector CSRF issue. Its mapping is supported by the vendor release notes and the matching upstream fix, rather than by a published CVE.org description, which remained RESERVED on 2026-11-10.
+- [Upstream commit 75d25fd6da73da4b9b5bdee14cca57e7f5691254](https://github.com/bestpractical/rt/commit/75d25fd6da73da4b9b5bdee14cca57e7f5691254) states that the revoke helper mutates ACL state but takes only an `id`, causing the CSRF heuristic to treat it as an idempotent read. It adds the exact helper described in this report to the CSRF blacklist.
+- The earlier question of whether to request a distinct identifier or treat this as related to [CVE-2026-41074](https://www.cve.org/CVERecord?id=CVE-2026-41074) is superseded by the vendor's explicit CVE-2026-108365 announcement. No separate CVE is requested by this update.
 
 ## Recommended remediation
 
+- Upgrade to **RT 5.0.11 or 6.0.4**, or a later supported release containing the fix. These fixed versions are confirmed by the vendor; this report does not claim a completed dynamic regression test against them.
 - Add `'/Helpers/RightsInspector/Revoke' => 1` to `%IS_BLACKLISTED_COMPONENT` as an immediate, minimal fix.
 - Stop inferring idempotency from argument names. Require an explicit per-component declaration of whether a component mutates state, and default to enforcing the Referer and token checks when the declaration is absent.
 - Require state-changing helpers to accept POST with a CSRF token, and reject non-`POST` methods for them at the dispatcher rather than in each component.
@@ -496,4 +506,9 @@ The request, response, and ACL state change above were reproduced on an isolated
 
 - 2026-10-09: Cross-version CSRF audit enumerated the `/Helpers/*` surface; `Revoke` identified as a single-`id` state-changing component absent from the exemption tables.
 - 2026-10-09: Reproduced on an isolated RT 5.0.5 instance; ACE row confirmed deleted; three negative controls recorded.
+- 2026-10-27: Best Practical replied separately to the earlier TTA-2026-001 through TTA-2026-004 reports, saying those issues had already been reported and that the next RT 5 release would address them. This corrects the earlier assertion that no response had been received.
 - 2026-10-28: Source comparison of 5.0.5, 5.0.10 and 6.0.3 completed; public TTA report published.
+- 2026-10-29: The permission-removal issue was reported to `security@bestpractical.com` in an encrypted email titled "[Confidential] Request Tracker permission removal can be triggered from another website".
+- 2026-10-29: The [upstream fix commit](https://github.com/bestpractical/rt/commit/75d25fd6da73da4b9b5bdee14cca57e7f5691254) adds the Rights Inspector revoke helper to the CSRF blacklist.
+- 2026-11-09: Best Practical confirmed the issue is fixed in RT 5.0.11 and 6.0.4 and asked that any corresponding VulDB submission be marked as already addressed.
+- 2026-11-10: This report was updated to reference the vendor-announced CVE-2026-108365, record the fixed versions, and correct the vendor-response history. The CVE.org record was still RESERVED at the time of this check. No new CVE request or VulDB status change was made as part of this documentation update.
